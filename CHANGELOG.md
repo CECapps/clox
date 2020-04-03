@@ -20,3 +20,6 @@ are full of errors that aren't actually errors.
 Added growable array for constant values to be tracked.
 
 Also futzed around with the definitions of NULL and size_t to shut up `clangd`.
+
+### 14.6 Line Information
+Add tracking of line numbers through the bytecode.
