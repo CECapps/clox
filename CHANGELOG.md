@@ -23,3 +23,14 @@ Also futzed around with the definitions of NULL and size_t to shut up `clangd`.
 
 ### 14.6 Line Information
 Add tracking of line numbers through the bytecode.
+
+## Chapter 15
+Initial implementation through 15.3.  It turns out that merely installing
+`clangd` doesn't actually install any of the header files it requires to run
+correctly.  That's really fucking dumb.  Anyway, cleaned up some, but not all,
+of the mess I added to define types that are clearly present.
+
+I've altered the DEBUG_TRACE_EXECUTION output to indicate that the stack is
+being printed, and that the stack can be empty.
+
+Compiling is now being done with `tcc -Wall -o bin/clox src/*.c`.
