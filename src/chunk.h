@@ -7,6 +7,7 @@
 // 14.3.0 - List of opcodes
 typedef enum {
     OP_CONSTANT,
+    OP_NEGATE,
     OP_RETURN,
 } OpCode;
 
