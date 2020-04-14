@@ -34,3 +34,14 @@ I've altered the DEBUG_TRACE_EXECUTION output to indicate that the stack is
 being printed, and that the stack can be empty.
 
 Compiling is now being done with `tcc -Wall -o bin/clox src/*.c`.
+
+### 15.3.1 Binary operators
+
+An actual running program!  Needs verification.
+
+### Challenge 2
+
+I am heavily in favor of more instructions instead of fewer instructions.  For
+this specific project, I do not care about speed or optimization.  I would not
+replace the numeric negate operator or the subtraction operator.  They serve
+different purposes in different contexts.
