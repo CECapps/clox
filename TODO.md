@@ -15,5 +15,5 @@
    - Challenge 1
      - Deferring until after operator precedence.  Priority: very low.
    - Challenge 3
-     - Deferring short term.  **Priority: high.**
-
+     - Deferring, short term.  How to do a growable array inside a struct?  Replace it with a pointer?
+       **Priority: high.**
