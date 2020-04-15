@@ -6,15 +6,15 @@
 // 14.4 Disassembling Chunks
 
 void disassembleChunk(Chunk* chunk, const char* name) {
-  printf("== %s ==\n", name);
+  printf("== Disassemble Chunk: %s ==\n", name); // Variation
 
   for (int offset = 0; offset < chunk->count;) {
     offset = disassembleInstruction(chunk, offset);
   }
+  printf("== %s: done ==\n", name); // Variation
 }
 
-static int constantInstruction(const char* name, Chunk* chunk,
-                               int offset) {
+static int constantInstruction(const char* name, Chunk* chunk, int offset) {
   uint8_t constant = chunk->code[offset + 1];
   printf("%-16s %4d '", name, constant);
   printValue(chunk->constants.values[constant]);
