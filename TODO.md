@@ -1,5 +1,6 @@
 # TODO
-
+ - REPL
+   - switch to readline/libedit/whatevs
  - Chapter 14
     - Challenge 1
         - "Devise an encoding that compresses the line information for a series of instructions on the same line."
