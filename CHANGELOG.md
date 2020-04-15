@@ -72,3 +72,12 @@ basically want to allow any expression within the `${...}` block.
 
 Yikes.  I'd emit a syntax error, and probably delete the source code file out
 of spite.
+
+## Chapter 17
+Running with no errors.  Pretty amazing, actually.
+
+### Challenge 2 (Infix Operators)
+> What about in C or another language of your choice?
+
+The first two that come to mind are the pointer operators, * and &.  These are
+also used for multiplication and bitwise-and respectively.

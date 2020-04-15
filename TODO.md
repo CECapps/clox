@@ -23,3 +23,8 @@
      - Skipping entirely.  I do not care how other languages deal with possibly confusing operator combos.
    - Challenge 3.
      - Deferring.  How Lox itself handles `this` is a great example of contextual keywords.  Priority: low.
+ - Chapter 17
+   - Challenge 1
+     - Skipping?  While I could just add prints everywhere, I don't think that's the point of the exercise.  I might come back to this if I find the need to understand the parser more.
+   - Challenge 3
+     - Deferred until there's expression parsing.
