@@ -45,3 +45,30 @@ I am heavily in favor of more instructions instead of fewer instructions.  For
 this specific project, I do not care about speed or optimization.  I would not
 replace the numeric negate operator or the subtraction operator.  They serve
 different purposes in different contexts.
+
+## Chapter 16
+Running with no errors.
+
+### Challenge 1
+> What token types would you define to implement a scanner for string interpolation?
+
+I'd probably only need to add one token, for `${`, but I'm not sure I'd go about
+doing too much processing during the scan.  I expect the most sane way to go
+about doing string interpolation would be to rewrite the given string into a set
+of concats.  Given the demo string:
+
+> `"${drink} will be ready in ${steep + cool} minutes."`
+
+I'd want to add (virtual?) parens for precedence and interpret it as:
+
+> `((drink) + " will be ready in " + (steep + cool) + " minutes.")`
+
+I'm not sure where in the processing this transformation would have to occur.  I
+basically want to allow any expression within the `${...}` block.
+
+> What tokens would you emit for
+>
+> `"Nested ${"interpolation?! Are you ${"mad?!"}"}"`
+
+Yikes.  I'd emit a syntax error, and probably delete the source code file out
+of spite.
