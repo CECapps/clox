@@ -3,9 +3,36 @@
 
 #include "common.h"
 
-typedef double Value;
+typedef enum {
+  VAL_BOOL,
+  VAL_NIL,
+  VAL_NUMBER,
+} ValueType;
 
-// 14.5.2 - Value arrays, growable
+/*
+  "A smart language hacker gave me the idea to use “as” for the name of this
+  field because it reads nicely, almost like a cast, when you pull the value out."
+*/
+typedef struct {
+  ValueType type;
+  union {
+    bool boolean;
+    double number;
+  } as;
+} Value;
+
+#define IS_BOOL(value)    ((value).type == VAL_BOOL)
+#define IS_NIL(value)     ((value).type == VAL_NIL)
+#define IS_NUMBER(value)  ((value).type == VAL_NUMBER)
+
+#define AS_BOOL(value)    ((value).as.boolean)
+#define AS_NUMBER(value)  ((value).as.number)
+
+// @TODO What are the C rules governing this syntax?
+#define BOOL_VAL(value)   ((Value){ VAL_BOOL, { .boolean = value } })
+#define NIL_VAL           ((Value){ VAL_NIL, { .number = 0 } })
+#define NUMBER_VAL(value) ((Value){ VAL_NUMBER, { .number = value } })
+
 typedef struct {
   int capacity;
   int count;

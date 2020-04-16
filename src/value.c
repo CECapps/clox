@@ -29,5 +29,5 @@ void freeValueArray(ValueArray* array) {
 }
 
 void printValue(Value value) {
-  printf("%g", value); // %g is double
+  printf("%g", AS_NUMBER(value)); // %g is double
 }

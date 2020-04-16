@@ -28,3 +28,5 @@
      - Skipping?  While I could just add prints everywhere, I don't think that's the point of the exercise.  I might come back to this if I find the need to understand the parser more.
    - Challenge 3
      - Deferred until there's expression parsing.
+ - Chapter 18
+   - What's with the dot syntax in value.h?  How does that get interpreted?
