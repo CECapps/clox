@@ -81,3 +81,13 @@ Running with no errors.  Pretty amazing, actually.
 
 The first two that come to mind are the pointer operators, * and &.  These are
 also used for multiplication and bitwise-and respectively.
+
+## Chapter 18
+Running with no errors.  I continue to be amazed that it always works the first time.
+
+### Challenges
+Subtraction is just negated addition, so that instruction could go... but that'd
+be very silly, and I am not going to do that.
+
+I'm not convinced that adding dedicated instructions for gte/lte would be useful
+here.  That'll be a job for benchmarking and optimization later.
