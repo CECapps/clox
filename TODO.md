@@ -2,6 +2,8 @@
  - REPL
    - switch to readline/libedit/whatevs
    - add "exit"
+ - Strings
+   - Interpolation of backslash escape sequences.
  - Chapter 14
     - Challenge 1
         - Skipping entirely.
