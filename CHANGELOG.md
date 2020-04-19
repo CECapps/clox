@@ -91,3 +91,19 @@ be very silly, and I am not going to do that.
 
 I'm not convinced that adding dedicated instructions for gte/lte would be useful
 here.  That'll be a job for benchmarking and optimization later.
+
+## Chapter 19
+Again running with no errors.  It echoed "Hello, World!" from a concat.
+
+### Challenge 2
+Just pointing at the original strings is probably a good idea, but my intent with
+this codebase is to use and enforce UTF-8 character encoding.  This is going to
+require a third party library, which will be creating and relying on certain
+string data types.  This code would ultimately be undone.
+
+### Challenge 3
+I'm going to answer this in reverse.  Some other languages have entirely separate
+operators for string concatenation and addition.  If I were to build a language,
+I would do the same.  If you want a string value to be interpreted as a number
+so the + operator can be used, then convert it to a number before using the
+operator.  `"1234".toInteger() + 101` or somesuch.

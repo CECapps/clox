@@ -32,3 +32,6 @@
      - Deferred until there's expression parsing.
  - Chapter 18
    - What's with the dot syntax in value.h?  How does that get interpreted?
+ - Chapter 19
+   - Challenge 1
+     - Great idea.  Deferred.  **Priority: high.**
