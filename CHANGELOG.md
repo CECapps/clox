@@ -107,3 +107,18 @@ operators for string concatenation and addition.  If I were to build a language,
 I would do the same.  If you want a string value to be interpreted as a number
 so the + operator can be used, then convert it to a number before using the
 operator.  `"1234".toInteger() + 101` or somesuch.
+
+## Chapter 20
+Still running with no errors.  It validated that `("f" + "o" + "o") == "foo"`.
+
+### Challenge 1
+> Later, clox will support user-defined classes. If we want to support keys that
+> are instances of those classes, what kind of complexity does that add?
+
+I actually don't think this should be too hard.  Objects will just have to have
+a method that retrieves a unique hash.  The hard part will be defining a data
+type at the C level that makes ObjString and ... whatever ... interchangable.
+I'm pretty sure that there's groundwork for that later on anyway.
+
+Like adding number, bool, and nil support, I'm going to defer any work on this
+until it's time to add hashes to the language.

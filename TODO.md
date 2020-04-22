@@ -35,3 +35,10 @@
  - Chapter 19
    - Challenge 1
      - Great idea.  Deferred.  **Priority: high.**
+ - Chapter 20
+   - Challenge 1: Add support for keys of the other primitive types: numbers, Booleans, and nil.
+     - Good idea.  Deferred until it's time to make user-defined hashes.  Priority: medium.
+   - Challenge 2: Look at other language's implementations of hash tables.
+     - Deferred.  I'm going to take a look at PHP and Java, and maybe Perl.  Maybe even Raku. Priority: low
+   - Challenge 3: Benchmark hashing
+     - Deferred pending support for user-defined hashes, so I can get an idea of what real-world lox programs look like.  Priority: low.
