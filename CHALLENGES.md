@@ -15,6 +15,7 @@ categories, with three generally different default responses:
    - Oh boy do I have *opinions!*
 
 ## Chapter 14, "Chunks of Bytecode"
+
 ### Challenge 1
 > Devise an encoding that compresses the line information for a series of
 > instructions on the same line.
@@ -141,3 +142,117 @@ they are meaningful.
 > How would you implement them in your language’s front end if you needed to?
 
 **Declined**.  I might intend to find out, depending on how complex I want to make things later.
+
+## Chapter 17, "Compiling Expressions"
+
+### Challenge 1
+> Take this (strange) expression:
+>
+> `(-1 + 2) * 3 - -4`
+>
+> Write a trace of how those functions are called. Show the order they are
+> called, which calls which, and the arguments passed to them.
+
+**Deferred** until I have to add more operators later.
+
+### Challenge 2
+> In the full Lox language, what other tokens can be used in both prefix and
+> infix positions? What about in C or another language of your choice?
+
+I don't know Lox well enough yet to name other reused tokens.  The `*` operator
+is used in C as both multiplication and for pointer purposes. The `&` operator
+is used in C as both bitwise-and and for pointer purposes.
+
+### Challenge 3
+> Add support for [the `? :`] operator to the compiler.
+
+**Deferred** and **high** priority.  Waiting for operator precedence and if/else.
+
+## Chapter 18, "Types of Values"
+
+### Challenge 1
+> We could reduce our binary operators even further than we did here. Which
+other instructions can you eliminate, and how would the compiler cope with
+their absence?
+
+Greater could be implemented as negated less-or-equal, for example.  Some of the
+others would work in the same way.  The compiler would just have to make sure
+that the instructions *correctly* negates the operation.
+
+### Challenge 2
+> Conversely, we can improve the speed of our bytecode VM by adding more
+specific instructions that correspond to higher-level operations. What
+instructions would you define to speed up the kind of user code we added
+support for in this chapter?
+
+Deferred until there's enough of a language to benchmark opcode changes.
+
+## Chapter 19, "Strings"
+
+### Challenge 1
+> A more efficient solution relies on a technique called "flexible array
+members". Use that to store the ObjString and its character array in a single
+contiguous allocation.
+
+**Declined.**  I'm intending to use an exteral Unicode library to process
+strings in the future.  I have no idea whether or not I'll need to handle
+memory allocation for those strings myself, or what other restrictions I need
+to handle.  Keeping the actual values inside a separate character array is
+safer for my future needs.
+
+### Challenge 2
+> Instead, we could keep track of which ObjStrings own their character array and
+which are “constant strings” that just point back to the original source string
+or some other non-freeable location. Add support for this.
+
+**Declined** for the same reason.
+
+### Challenge 3
+> If Lox was your language, what would you have it do when a user tries to use
+`+` with one string operand and the other some other type? Justify your choice.
+What do other languages do?
+
+I intend to move away from using `+` as the concatenation operator.  If the
+operands are not numeric, an error should be thrown.  Some languages attempt
+to perform dynamic type conversion, which can lead to loss of precision or
+loss of data itself.  I am not in favor of lossy type conversion.
+
+Javascript does weird, weird stuff with `+`, a bunch of which can be seen in the
+infamous [Wat talk](https://www.destroyallsoftware.com/talks/wat).  Array plus
+array is the empty string!?
+
+## Chapter 20, "Hash Tables"
+
+### Challenge 1
+> Add support for keys of the other primitive types: numbers, Booleans, and nil.
+
+**Deferred** with **high** priority.  I intend to add hashes to the language,
+and will tackle this task then.
+
+> Later, clox will support user-defined classes. If we want to support keys
+> that are instances of those classes, what kind of complexity does that add?
+
+First, I'll ignore whatever changes are needed to handle numbers, booleans,
+and nil.  I don't think there needs to be a fundamental shift to the way that
+the code operates, except that the creation of the hashcode itself would come
+from something other than calling the internal hash function on the internal
+string representation.
+
+I'm going to need to do this if I ever expect to support Sets, so I guess that
+this is also **deferred**.
+
+### Challenge 2
+> Look up a few hash table implementations in different open source systems,
+> research the choices they made, and try to figure out why they did things
+> that way.
+
+**Deferred**.  I'll be looking up what PHP does first, and then possibly look
+at Java.  I should also look at Perl, but I'm not sure I want to look at C that
+has been created by Perl developers.
+
+### Challenge 3
+> Write a handful of different benchmark programs to validate our hash table
+> implementation. How does the performance vary between them? Why did you
+> choose the specific test cases you chose?
+
+**Deferred** until hashes are in the language.

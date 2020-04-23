@@ -39,86 +39,17 @@ Compiling is now being done with `tcc -Wall -o bin/clox src/*.c`.
 
 An actual running program!  Needs verification.
 
-### Challenge 2
-
-I am heavily in favor of more instructions instead of fewer instructions.  For
-this specific project, I do not care about speed or optimization.  I would not
-replace the numeric negate operator or the subtraction operator.  They serve
-different purposes in different contexts.
-
 ## Chapter 16
 Running with no errors.
-
-### Challenge 1
-> What token types would you define to implement a scanner for string interpolation?
-
-I'd probably only need to add one token, for `${`, but I'm not sure I'd go about
-doing too much processing during the scan.  I expect the most sane way to go
-about doing string interpolation would be to rewrite the given string into a set
-of concats.  Given the demo string:
-
-> `"${drink} will be ready in ${steep + cool} minutes."`
-
-I'd want to add (virtual?) parens for precedence and interpret it as:
-
-> `((drink) + " will be ready in " + (steep + cool) + " minutes.")`
-
-I'm not sure where in the processing this transformation would have to occur.  I
-basically want to allow any expression within the `${...}` block.
-
-> What tokens would you emit for
->
-> `"Nested ${"interpolation?! Are you ${"mad?!"}"}"`
-
-Yikes.  I'd emit a syntax error, and probably delete the source code file out
-of spite.
 
 ## Chapter 17
 Running with no errors.  Pretty amazing, actually.
 
-### Challenge 2 (Infix Operators)
-> What about in C or another language of your choice?
-
-The first two that come to mind are the pointer operators, * and &.  These are
-also used for multiplication and bitwise-and respectively.
-
 ## Chapter 18
 Running with no errors.  I continue to be amazed that it always works the first time.
-
-### Challenges
-Subtraction is just negated addition, so that instruction could go... but that'd
-be very silly, and I am not going to do that.
-
-I'm not convinced that adding dedicated instructions for gte/lte would be useful
-here.  That'll be a job for benchmarking and optimization later.
 
 ## Chapter 19
 Again running with no errors.  It echoed "Hello, World!" from a concat.
 
-### Challenge 2
-Just pointing at the original strings is probably a good idea, but my intent with
-this codebase is to use and enforce UTF-8 character encoding.  This is going to
-require a third party library, which will be creating and relying on certain
-string data types.  This code would ultimately be undone.
-
-### Challenge 3
-I'm going to answer this in reverse.  Some other languages have entirely separate
-operators for string concatenation and addition.  If I were to build a language,
-I would do the same.  If you want a string value to be interpreted as a number
-so the + operator can be used, then convert it to a number before using the
-operator.  `"1234".toInteger() + 101` or somesuch.
-
 ## Chapter 20
 Still running with no errors.  It validated that `("f" + "o" + "o") == "foo"`.
-
-### Challenge 1
-> Later, clox will support user-defined classes. If we want to support keys that
-> are instances of those classes, what kind of complexity does that add?
-
-I actually don't think this should be too hard.  Objects will just have to have
-a method that retrieves a unique hash.  The hard part will be defining a data
-type at the C level that makes ObjString and ... whatever ... interchangable.
-I'm pretty sure that there's groundwork for that later on anyway.
-
-Like adding number, bool, and nil support, I'm going to defer any work on this
-until it's time to add hashes to the language.
