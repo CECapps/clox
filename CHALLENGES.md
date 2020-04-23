@@ -256,3 +256,47 @@ has been created by Perl developers.
 > choose the specific test cases you chose?
 
 **Deferred** until hashes are in the language.
+
+## Chapter 21, "Global Variables"
+
+### Challenge 1
+> The compiler adds a global variable’s name to the constant table as a string
+> every time an identifier is encountered. [...] Optimize this.
+
+The same is also true for repeated string literals, or for repeated numbers.
+Or bools.  Or nil.  My gut instinct would be to use a hash table here to ensure
+uniqueness.
+
+The brute force solution would be to search the constants array during each
+insert and only insert if the constant was not already defined.  This would be
+a much less radical change for the rest of the code.  However, being brute force,
+it's also slow and possibly wasteful.
+
+> How does your optimization affect the performance of the compiler compared
+> to the runtime? Is this the right trade-off?
+
+**Deferred** with *medium* priority.  This sounds like an optimization worth
+pursuing, but I'm going to (again) wait until hashes are in the language before
+thinking about how to benchmark it.
+
+### Challenge 2
+> Looking up a global variable by name in a hash table each time it is used is
+pretty slow, even with a good hash table. Can you come up with a more efficient
+way to store and access global variables without changing the semantics?
+
+This sounds like a job for a [radix tree](https://en.wikipedia.org/wiki/Radix_tree).
+
+**Deferred** priority *medium*.  Need to play around with how they work first.
+
+### Challenge 3
+> We could report mistakes like [undefined but never used variable] as compile
+errors, at least when running from a script. Do you think we should? Justify
+your answer. What do other scripting languages you know do?
+
+Very few scripting languages complain about uncalled or unreachable code.  Given
+that scripting languages tend to be highly dynamic and have the ability to
+inline code via things like `include`/`require`, I'm not sure that any compile
+or run time error checking on uncalled functions or undefined variables that
+never reach the point of being evaluated is appropriate.
+
+This might be more appropriate for language analysis tools and things like IDEs.
