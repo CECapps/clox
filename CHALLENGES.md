@@ -347,3 +347,25 @@ the stack, with regard to resizing on demand.  At least in spirit.  The two
 sections of code don't really work similarly.
 
 **Deferred** until after Chapter 15, Challenge 3.
+
+## Chapter 23
+
+### Challenge 1
+> In addition to if statements, most C-family languages have a multi-way switch
+> statement. Add one to clox.
+
+Hell yeah, but **deferred** with *medium* priority.  This'll be something that
+will be done with `? :`.
+
+### Challenge 2
+> In jlox, we had a challenge to add support for `break` statements. This time,
+> let’s do `continue`
+
+Sounds good, but I want to spell it `next`.  Hell yeah, but **deferred** with
+*medium* priority because it sounds messy.
+
+### Challenge 3
+> For fun, try to invent a useful novel control flow feature for Lox.
+
+It's not truly novel, but I want to add `unless` as a negated `if` and `until`
+as a negated `while`.  **Deferred** with *medium* priority.
