@@ -139,6 +139,12 @@ static InterpretResult run() {
 
       case OP_POP:  pop(); break;
 
+      case OP_GET_LOCAL: {
+        uint8_t slot = READ_BYTE();
+        push(vm.stack[slot]);
+        break;
+      }
+
       case OP_SET_LOCAL: {
         uint8_t slot = READ_BYTE();
         vm.stack[slot] = peek(0);
@@ -221,6 +227,15 @@ static InterpretResult run() {
       case OP_RETURN: {
         // Exit interpreter.
         return INTERPRET_OK;
+      }
+
+      // Variation
+      default: {
+        char err[30];
+        sprintf(err, "Unknown opcode %d.", instruction);
+        runtimeError(err);
+        // @FIXME: Do I free err here?
+        return INTERPRET_RUNTIME_ERROR;
       }
 
     }
