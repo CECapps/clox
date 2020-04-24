@@ -3,7 +3,6 @@
 #include "debug.h"
 #include "value.h"
 
-// 14.4 Disassembling Chunks
 
 void disassembleChunk(Chunk* chunk, const char* name) {
   printf("== Disassemble Chunk: %s ==\n", name); // Variation
@@ -13,6 +12,7 @@ void disassembleChunk(Chunk* chunk, const char* name) {
   }
   printf("== %s: done ==\n", name); // Variation
 }
+
 
 static int constantInstruction(const char* name, Chunk* chunk, int offset) {
   uint8_t constant = chunk->code[offset + 1];
@@ -30,10 +30,19 @@ static int constantInstruction(const char* name, Chunk* chunk, int offset) {
   return offset + 2;
 }
 
+
 static int simpleInstruction(const char* name, int offset) {
   printf("%s\n", name);
   return offset + 1;
 }
+
+
+static int byteInstruction(const char* name, Chunk* chunk, int offset) {
+  uint8_t slot = chunk->code[offset + 1];
+  printf("%-16s %4d\n", name, slot);
+  return offset + 2;
+}
+
 
 int disassembleInstruction(Chunk* chunk, int offset) {
   printf("%04d ", offset);
@@ -61,6 +70,12 @@ int disassembleInstruction(Chunk* chunk, int offset) {
 
     case OP_POP:
       return simpleInstruction("OP_POP", offset);
+
+    case OP_GET_LOCAL:
+      return byteInstruction("OP_GET_LOCAL", chunk, offset);
+
+    case OP_SET_LOCAL:
+      return byteInstruction("OP_SET_LOCAL", chunk, offset);
 
     case OP_GET_GLOBAL:
       return constantInstruction("OP_GET_GLOBAL", chunk, offset);
