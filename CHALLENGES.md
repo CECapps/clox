@@ -89,6 +89,8 @@ a size check on `push` and the mechanism of creating a new stack, copying over
 the contents, then freeing the old.  The main benefit would be allowing larger,
 deeper, more complex programs, with more recursion etc.
 
+See also Chapter 22, Challenge 4.
+
 ## Chapter 16, "Scanning on Demand"
 
 ### Challenge 1
@@ -288,6 +290,8 @@ This sounds like a job for a [radix tree](https://en.wikipedia.org/wiki/Radix_tr
 
 **Deferred** priority *medium*.  Need to play around with how they work first.
 
+See also Chapter 22 Challenge 1.
+
 ### Challenge 3
 > We could report mistakes like [undefined but never used variable] as compile
 errors, at least when running from a script. Do you think we should? Justify
@@ -300,3 +304,46 @@ or run time error checking on uncalled functions or undefined variables that
 never reach the point of being evaluated is appropriate.
 
 This might be more appropriate for language analysis tools and things like IDEs.
+
+## Chapter 22
+
+### Challenge 1
+> [...] when the compiler resolves a reference to a variable, we have to do a
+> linear scan through the array.  Come up with something more efficient. Do you
+> think the additional complexity is worth it?
+
+The text itself suggests that the mechanisms for local variable lookup could
+benefit from being in a hash table.  I agree in principle, but the last chapter
+suggested that even a hash table lookup might be slow.  This might also be a
+case where a radix tree could be the right solution.
+
+**Deferred** priority *medium*, after Chapeter 21 Challenge 2.
+
+### Challenge 2
+> How do other languages handle code like: `var a = a;`? What would you do? Why?
+
+It's legal in Perl and Javascript.  It's an undefined variable notice in PHP,
+but that's just a notice, not a script-halting error.
+
+This is one of those cases where it's possibly a coding error, and something at
+least as strong as a linting tool should warn about it.  I don't think it should
+be an *error* though.
+
+### Challenge 3
+> Pick a keyword for a single-assignment variable form to add to Lox. Justify
+> your choice, then implement it. An attempt to assign to a variable declared
+> using your new keyword should cause a compile error.
+
+I like it, though my gut instinct is that assigning to an unassignable variable
+smells more like a runtime error, not a compile error.
+
+**Deferred**, priority *medium*.
+
+### Challenge 4
+> Extend clox to allow more than 255 local variables to be in scope at a time.
+
+This smells like a variation on the same thing that would need to happen to
+the stack, with regard to resizing on demand.  At least in spirit.  The two
+sections of code don't really work similarly.
+
+**Deferred** until after Chapter 15, Challenge 3.

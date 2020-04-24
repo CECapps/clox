@@ -16,6 +16,7 @@ each challenge.
 
 This code is built for Debian Buster inside WSL.  The target compiler is [`tcc`][2].
 
+Build by invoking `tcc -Wall -o bin/clox src/*.c`
 
  [1]: https://craftinginterpreters.com
  [2]: http://www.tinycc.org/
