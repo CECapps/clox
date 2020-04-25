@@ -369,3 +369,26 @@ Sounds good, but I want to spell it `next`.  Hell yeah, but **deferred** with
 
 It's not truly novel, but I want to add `unless` as a negated `if` and `until`
 as a negated `while`.  **Deferred** with *medium* priority.
+
+## Chapter 24
+
+### Challenge 1
+> Ideally, we’d keep the ip in a native CPU register.  [...] Write a couple of
+> benchmarks and see how it affects the performance. Do you think the extra code
+> complexity is worth it?
+
+**Declined**.  The extra complexity will not be worth it for me.
+
+### Challenge 2
+> Right now, there’s no way for a native function to signal a runtime error.
+
+This flows directly into ...
+
+### Challenge 3
+> Add some more native functions to do things you find useful.
+
+It took ten chapters before I found a thing that I need to do right away.
+
+It's time to take a break from this C implementation to actually go and read the
+chapters on the Java implementation.  The task is to put together a list of
+native functions that I will need to build a `loxlox`.
