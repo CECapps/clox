@@ -365,6 +365,7 @@ static InterpretResult run() {
 #undef BINARY_OP
 }
 
+
 InterpretResult interpret(const char* source) {
   ObjFunction* function = compile(source);
   if (function == NULL) return INTERPRET_COMPILE_ERROR;

@@ -16,16 +16,19 @@
 #define AS_STRING(value)        ((ObjString*)AS_OBJ(value))
 #define AS_CSTRING(value)       (((ObjString*)AS_OBJ(value))->chars)
 
+
 typedef enum {
   OBJ_FUNCTION,
   OBJ_NATIVE,
   OBJ_STRING,
 } ObjType;
 
+
 struct sObj {
   ObjType type;
   struct sObj* next;
 };
+
 
 typedef struct {
   Obj obj;
@@ -34,12 +37,15 @@ typedef struct {
   ObjString* name;
 } ObjFunction;
 
+
 typedef Value (*NativeFn)(int argCount, Value* args);
+
 
 typedef struct {
   Obj obj;
   NativeFn function;
 } ObjNative;
+
 
 struct sObjString {
   Obj obj;
@@ -48,15 +54,19 @@ struct sObjString {
   uint32_t hash;
 };
 
+
 ObjFunction* newFunction();
 ObjNative* newNative(NativeFn function);
 ObjString* takeString(char* chars, int length);
 ObjString* copyString(const char* chars, int length);
 
+
 void printObject(Value value);
+
 
 static inline bool isObjType(Value value, ObjType type) {
   return IS_OBJ(value) && AS_OBJ(value)->type == type;
 }
+
 
 #endif

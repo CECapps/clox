@@ -18,6 +18,7 @@ typedef struct {
   bool panicMode;
 } Parser;
 
+
 typedef enum {
   PREC_NONE,
   PREC_ASSIGNMENT,  // =
@@ -32,6 +33,7 @@ typedef enum {
   PREC_PRIMARY
 } Precedence;
 
+
 /*
   "C’s syntax for function pointer types is so bad that I always hide it behind
   a typedef. I understand the intent behind the syntax—the whole “declaration
@@ -39,21 +41,25 @@ typedef enum {
 */
 typedef void (*ParseFn)(bool canAssign);
 
+
 typedef struct {
   ParseFn prefix;
   ParseFn infix;
   Precedence precedence;
 } ParseRule;
 
+
 typedef struct {
   Token name;
   int depth;
 } Local;
 
+
 typedef enum {
   TYPE_FUNCTION,
   TYPE_SCRIPT
 } FunctionType;
+
 
 typedef struct Compiler {
   struct Compiler* enclosing;
@@ -65,11 +71,13 @@ typedef struct Compiler {
   int scopeDepth;
 } Compiler;
 
+
 Parser parser;
 
 Compiler* current = NULL;
 
 Chunk* compilingChunk;
+
 
 static Chunk* currentChunk() {
   return &current->function->chunk;

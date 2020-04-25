@@ -3,7 +3,6 @@
 #include "chunk.h"
 #include "memory.h"
 
-// 14.3.1 - Chunks are containers for bytecode
 
 void initChunk(Chunk* chunk) {
   chunk->count = 0;
@@ -13,12 +12,14 @@ void initChunk(Chunk* chunk) {
   initValueArray(&chunk->constants);
 }
 
+
 void freeChunk(Chunk* chunk) {
   FREE_ARRAY(uint8_t, chunk->code, chunk->capacity);
   FREE_ARRAY(int, chunk->lines, chunk->capacity);
   freeValueArray(&chunk->constants);
   initChunk(chunk);
 }
+
 
 void writeChunk(Chunk* chunk, uint8_t byte, int line) {
   if (chunk->capacity < chunk->count + 1) {
@@ -32,6 +33,7 @@ void writeChunk(Chunk* chunk, uint8_t byte, int line) {
   chunk->lines[chunk->count] = line;
   chunk->count++;
 }
+
 
 int addConstant(Chunk* chunk, Value value) {
   writeValueArray(&chunk->constants, value);

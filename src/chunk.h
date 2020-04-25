@@ -4,7 +4,6 @@
 #include "common.h"
 #include "value.h"
 
-// 14.3.0 - List of opcodes
 typedef enum {
     OP_CONSTANT,
     OP_NIL,
@@ -33,7 +32,7 @@ typedef enum {
     OP_RETURN,
 } OpCode;
 
-// 14.3.1 - Chunks are containers for bytecode
+
 typedef struct {
     int count;
     int capacity;
@@ -41,6 +40,7 @@ typedef struct {
     int* lines;
     ValueArray constants;
 } Chunk;
+
 
 void initChunk(Chunk* chunk);
 void freeChunk(Chunk* chunk);
