@@ -61,6 +61,10 @@
    - Is there a difference in how `isa` would be understood by humans vs `instanceof`?
  - Varargs?
    - For `match` in Chapter 6
+ - Optional function arguments
+   - `fun foo(bar, baz?) { ... }` ?
+   - `fun foo(bar, baz = null) { ... }` ?
+      - Don't seem to need actual default values, so this might be overkill
  - Arrays
    - ... or objects that look like an Array
  - Hashes
@@ -70,6 +74,7 @@
  - Exceptions
    - Userland throwing should be easy.  `fun:return :: try:throw`
    - `catch` is just an anonymous non-closure function with a default parameter?
+   - Ugh, the environment code in chapter 8 uses `finally`.
  - Interfaces
    - Could just make a default impl for each method that throws an error.
  - Abstract classes?
