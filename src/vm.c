@@ -30,6 +30,20 @@ static Value timeNative(int argCount, Value* args) {
 }
 #endif
 
+#ifdef FEATURE_FUNC_DEBUG
+static Value debugDumpStackNative(int argCount, Value* args) {
+  int counter = 0;
+  for (Value* slot = vm.stack; slot < vm.stackTop; slot++) {
+    printf("%d:", counter);
+    printValue(*slot);
+    printf(", ");
+    counter++;
+  }
+  printf("\n");
+  return NIL_VAL;
+}
+#endif
+
 
 // "static" here creates a function that is not visible to the outside world.
 // This function is also not declared in vm.h.
@@ -84,6 +98,10 @@ void initVM() {
 #ifdef FEATURE_FUNC_TIME
   defineNative("time", timeNative);
 #endif
+#ifdef FEATURE_FUNC_DEBUG
+  defineNative("debug_dump_stack", debugDumpStackNative);
+#endif
+
 }
 
 
