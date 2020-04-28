@@ -5,6 +5,8 @@
 
 // Needed for FEATURE_EXIT
 #include <stdlib.h>
+// Needed for FEATURE_FUNC_TIME
+#include <sys/time.h>
 
 #include "common.h"
 #include "compiler.h"
@@ -19,6 +21,14 @@ VM vm;
 static Value clockNative(int argCount, Value* args) {
   return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
 }
+
+#ifdef FEATURE_FUNC_TIME
+static Value timeNative(int argCount, Value* args) {
+  struct timeval current_time;
+  gettimeofday(&current_time, /* timezone */ NULL);
+  return NUMBER_VAL((double)(current_time.tv_sec) + ((double)(current_time.tv_usec) / 100000));
+}
+#endif
 
 
 // "static" here creates a function that is not visible to the outside world.
@@ -70,6 +80,10 @@ void initVM() {
   initTable(&vm.strings);
 
   defineNative("clock", clockNative);
+
+#ifdef FEATURE_FUNC_TIME
+  defineNative("time", timeNative);
+#endif
 }
 
 

@@ -12,6 +12,7 @@
 
 #ifdef CC_FEATURES
 #define FEATURE_EXIT
+#define FEATURE_FUNC_TIME
 #endif
 
 #define UINT8_COUNT (UINT8_MAX + 1)
