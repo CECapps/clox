@@ -550,6 +550,9 @@ ParseRule rules[] = {
   { literal,  NULL,    PREC_NONE },       // TOKEN_TRUE
   { NULL,     NULL,    PREC_NONE },       // TOKEN_VAR
   { NULL,     NULL,    PREC_NONE },       // TOKEN_WHILE
+#ifdef FEATURE_EXIT
+  { NULL,     NULL,    PREC_NONE },       // TOKEN_EXIT
+#endif
   { NULL,     NULL,    PREC_NONE },       // TOKEN_ERROR
   { NULL,     NULL,    PREC_NONE },       // TOKEN_EOF
 };
@@ -764,6 +767,20 @@ static void whileStatement() {
   emitByte(OP_POP);
 }
 
+#ifdef FEATURE_EXIT
+
+static void exitStatement() {
+  if (match(TOKEN_SEMICOLON)) {
+    emitByte(OP_NIL);
+    emitByte(OP_EXIT);
+  } else {
+    expression();
+    consume(TOKEN_SEMICOLON, "Expect ';' after exit value.");
+    emitByte(OP_EXIT);
+  }
+}
+
+#endif
 
 static void synchronize() {
   parser.panicMode = false;
@@ -820,6 +837,10 @@ static void statement() {
     beginScope();
     block();
     endScope();
+#ifdef FEATURE_EXIT
+  } else if(match(TOKEN_EXIT)) {
+    exitStatement();
+#endif
   } else {
     expressionStatement();
   }

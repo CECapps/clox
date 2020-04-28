@@ -30,6 +30,9 @@ typedef enum {
     OP_LOOP,
     OP_CALL,
     OP_RETURN,
+#ifdef FEATURE_EXIT
+    OP_EXIT,
+#endif
 } OpCode;
 
 

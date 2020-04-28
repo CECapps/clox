@@ -10,6 +10,10 @@
 #define DEBUG_TRACE_EXECUTION
 #endif
 
+#ifdef CC_FEATURES
+#define FEATURE_EXIT
+#endif
+
 #define UINT8_COUNT (UINT8_MAX + 1)
 
 #endif

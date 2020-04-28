@@ -3,6 +3,9 @@
 #include <string.h>
 #include <time.h>
 
+// Needed for FEATURE_EXIT
+#include <stdlib.h>
+
 #include "common.h"
 #include "compiler.h"
 #include "debug.h"
@@ -345,6 +348,29 @@ static InterpretResult run() {
         frame = &vm.frames[vm.frameCount - 1];
         break;
       }
+
+#ifdef FEATURE_EXIT
+      case OP_EXIT:{
+        // POSIX says to only use 8 bits out of the 16 bit ("int" type) exit value
+        double errorlevel = AS_NUMBER(pop());
+        if(errorlevel > 255 || errorlevel < 0) {
+          runtimeError("Exit value must be between 0 and 255, inclusive.");
+          return INTERPRET_RUNTIME_ERROR;
+        }
+
+        // This is a clean exit.  Tear down the environment to let the (future)
+        // GC clean things up, just in case.
+        // @FIXME: I tried moving the call to freeVM() to an atexit() function
+        // over in main, but the compiler threw an error at me that suggested
+        // some deep level library weirdness that SO in turn said I should just
+        // stop trying to worry about and Don't Do That.
+        freeVM();
+
+        // @FIXME: I'd like to not exit from this deep inside the code.  What
+        // would be a better way to handle this?
+        exit( (int)errorlevel );
+      }
+#endif
 
       // Variation
       default: {
