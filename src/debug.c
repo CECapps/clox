@@ -139,6 +139,16 @@ int disassembleInstruction(Chunk* chunk, int offset) {
     case OP_RETURN:
       return simpleInstruction("OP_RETURN", offset);
 
+#ifdef FEATURE_EXIT
+    case OP_EXIT:
+      return simpleInstruction("OP_EXIT", offset);
+#endif
+
+#ifdef FEATURE_ECHO
+    case OP_ECHO:
+      return byteInstruction("OP_ECHO", chunk, offset);
+#endif
+
     default:
       printf("Unknown opcode %d\n", instruction);
       return offset + 1;

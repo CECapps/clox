@@ -26,6 +26,9 @@ typedef enum {
 #ifdef FEATURE_EXIT
   TOKEN_EXIT,
 #endif
+#ifdef FEATURE_ECHO
+  TOKEN_ECHO,
+#endif
 
   TOKEN_ERROR,
   TOKEN_EOF

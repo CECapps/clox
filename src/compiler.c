@@ -553,6 +553,9 @@ ParseRule rules[] = {
 #ifdef FEATURE_EXIT
   { NULL,     NULL,    PREC_NONE },       // TOKEN_EXIT
 #endif
+#ifdef FEATURE_ECHO
+  { NULL,     NULL,    PREC_NONE },       // TOKEN_ECHO - same as TOKEN_PRINT
+#endif
   { NULL,     NULL,    PREC_NONE },       // TOKEN_ERROR
   { NULL,     NULL,    PREC_NONE },       // TOKEN_EOF
 };
@@ -733,6 +736,22 @@ static void printStatement() {
   emitByte(OP_PRINT);
 }
 
+#ifdef FEATURE_ECHO
+
+static void echoStatement() {
+  uint8_t arg_count = 0;
+  do {
+    expression();
+    if (arg_count == 255) {
+      error("Cannot have more than 255 arguments.");
+    }
+    arg_count++;
+  } while (match(TOKEN_COMMA));
+  consume(TOKEN_SEMICOLON, "Expect ';' after values.");
+  emitBytes(OP_ECHO, arg_count);
+}
+
+#endif
 
 static void returnStatement() {
   if (current->type == TYPE_SCRIPT) {
@@ -840,6 +859,10 @@ static void statement() {
 #ifdef FEATURE_EXIT
   } else if(match(TOKEN_EXIT)) {
     exitStatement();
+#endif
+#ifdef FEATURE_ECHO
+  } else if(match(TOKEN_ECHO)) {
+    echoStatement();
 #endif
   } else {
     expressionStatement();

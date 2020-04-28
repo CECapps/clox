@@ -131,18 +131,19 @@ static TokenType identifierType() {
   switch (scanner.start[0]) {
     case 'a': return checkKeyword(1, 2, "nd", TOKEN_AND);
     case 'c': return checkKeyword(1, 4, "lass", TOKEN_CLASS);
-#ifndef FEATURE_EXIT
-    case 'e': return checkKeyword(1, 3, "lse", TOKEN_ELSE);
-#else
     case 'e':
       if (scanner.current - scanner.start > 1) {
         switch (scanner.start[1]) {
+#ifdef FEATURE_ECHO
+          case 'c': return checkKeyword(2, 2, "ho", TOKEN_ECHO);
+#endif
           case 'l': return checkKeyword(2, 2, "se", TOKEN_ELSE);
+#ifdef FEATURE_EXIT
           case 'x': return checkKeyword(2, 2, "it", TOKEN_EXIT);
+#endif
         }
       }
       break;
-#endif
     case 'f':
       if (scanner.current - scanner.start > 1) {
         switch (scanner.start[1]) {

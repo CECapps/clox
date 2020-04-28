@@ -10,11 +10,13 @@
 #define DEBUG_TRACE_EXECUTION
 #endif
 
-#ifdef CC_FEATURES
+// Turning off this flag so that my IDE sees these as defined.
+//#xifdef CC_FEATURES
 #define FEATURE_EXIT
 #define FEATURE_FUNC_TIME
 #define FEATURE_FUNC_DEBUG
-#endif
+#define FEATURE_ECHO
+//#xendif
 
 #define UINT8_COUNT (UINT8_MAX + 1)
 

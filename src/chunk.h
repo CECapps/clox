@@ -33,6 +33,9 @@ typedef enum {
 #ifdef FEATURE_EXIT
     OP_EXIT,
 #endif
+#ifdef FEATURE_ECHO
+    OP_ECHO,
+#endif
 } OpCode;
 
 

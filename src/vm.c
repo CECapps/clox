@@ -382,7 +382,7 @@ static InterpretResult run() {
       }
 
 #ifdef FEATURE_EXIT
-      case OP_EXIT:{
+      case OP_EXIT: {
         // POSIX says to only use 8 bits out of the 16 bit ("int" type) exit value
         double errorlevel = AS_NUMBER(pop());
         if(errorlevel > 255 || errorlevel < 0) {
@@ -402,6 +402,16 @@ static InterpretResult run() {
         // would be a better way to handle this?
         exit( (int)errorlevel );
       }
+#endif
+
+#ifdef FEATURE_ECHO
+    case OP_ECHO: {
+      uint8_t arg_count = READ_BYTE();
+      while(arg_count-- > 0) {
+        printValue(peek(arg_count));
+      }
+      break;
+    }
 #endif
 
       // Variation
