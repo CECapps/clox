@@ -6,6 +6,7 @@
 #include "common.h"
 #include "compiler.h"
 #include "scanner.h"
+#include "memory.h"
 
 #ifdef DEBUG_PRINT_CODE
 #include "debug.h"
@@ -454,20 +455,68 @@ static void or_(bool canAssign) {
   patchJump(endJump);
 }
 
+#ifdef FEATURE_STRING_BACKSLASH_ESCAPES
 
-/*
-  "This takes the string’s characters directly from the lexeme.
-  The + 1 and - 2 parts trim the leading and trailing quotation marks. It then
-  creates a string object, wraps it in a Value, and stuffs it into the constant
-  table."
+static bool isHex(char c) {
+  return (c >= 'a' && c <= 'f') ||
+         (c >= 'A' && c <= 'F') ||
+         (c >= '0' && c <= '9');
+}
 
-  @TODO "If Lox supported string escape sequences like \n, we’d translate those here."
-*/
+static void string(bool canAssign) {
+  char *new_str = ALLOCATE(char, parser.previous.length + 1);
+  int new_index = 0;
+  // The index starts at 1 to cut off the opening double quote.
+  // The check does < to skip the closing double quote.
+  for(int orig_index = 1; orig_index < parser.previous.length; orig_index++) {
+    char c = parser.previous.start[orig_index];
+    if(c == '\\') {
+      char next = parser.previous.start[orig_index + 1];
+      switch(next) {
+        case 'n':  c = '\n'; orig_index++; break;
+        case 'r':  c = '\r'; orig_index++; break;
+        case 't':  c = '\t'; orig_index++; break;
+        case '"':  c = '"';  orig_index++; break;
+        case '\\':           orig_index++; break;
+        case 'x': {
+          // This is super duper hacky.
+          // After the "\x", we expect two hex characters.  Examine each.
+          char hex_left = parser.previous.start[orig_index + 2];
+          char hex_right = parser.previous.start[orig_index + 3];
+          if(isHex(hex_left) && isHex(hex_right)) {
+            // Now that we know the next two characters are hex, glue them back
+            // together into a new string as expected by strtol.
+            char lolhex[3];
+            lolhex[0] = hex_left;
+            lolhex[1] = hex_right;
+            lolhex[2] = '\0';
+            // The value returned by strtol given two hex digits will never
+            // exceed the storage capacity of c, so this is safe.
+            c = strtol(lolhex, NULL, 16);
+            // We've processed the "x" and then two hex digits, adjust accordingly.
+            orig_index += 3;
+            break;
+          }
+        }
+      }
+    }
+    new_str[new_index] = c;
+    new_index++;
+  }
+  new_str[new_index] = '\0'; // I don't *think* this is needed, but I'm not sure.
+
+  emitConstant(OBJ_VAL(copyString(new_str, new_index - 1)));
+}
+
+#else // FEATURE_STRING_BACKSLASH_ESCAPES
+
+// The +1 and -2 adjust for the quotes in the string stored in parser.previous
 static void string(bool canAssign) {
   emitConstant(OBJ_VAL(copyString(parser.previous.start + 1,
                                   parser.previous.length - 2)));
 }
 
+#endif
 
 static void namedVariable(Token name, bool canAssign) {
   uint8_t getOp, setOp;

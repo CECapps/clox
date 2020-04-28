@@ -3,8 +3,6 @@
    - switch to readline/libedit/whatevs
  - Core functions that can write to stdout & stderr
  - Core functions that can read from stdin
- - Strings
-   - Interpolation of select backslash escape sequences.
  - Chapter 18
    - What's with the dot syntax in value.h?  How does that get interpreted?
  - Language server
@@ -33,9 +31,7 @@
    - Needed for code generation as outlined in the book.  Could skip code gen...
 
 ## Required String Operations
- - Interpolation of certain backslash sequences
-   - See book text for the exact expectations
-   - Some other way of representing unprintable/control characters could also work
+ - ~~Interpolation of certain backslash sequences~~ **DONE** in all double-quoted strings.
  - Length in 8-bit bytes
  - Extracting a substring at a starting index for a given length
  - Splitting a string along a given character
