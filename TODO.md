@@ -1,7 +1,6 @@
 # TODO
  - REPL
    - switch to readline/libedit/whatevs
-   - add "exit"
  - Core functions that can write to stdout & stderr
  - Core functions that can read from stdin
  - Strings
@@ -29,7 +28,7 @@
 ## Required I/O Operations
  - Reading the contents of a file into a string
  - Reading a line from stdin
- - Printing to stdout without a newline
+ - ~~Printing to stdout without a newline~~ **DONE**, use `echo` instead of `print`.
  - Opening a file and writing to it one line at a time?
    - Needed for code generation as outlined in the book.  Could skip code gen...
 
@@ -44,7 +43,7 @@
  - Trimming a string
 
 ## Required Language Features
- - Exiting, with a status code
+ - ~~Exiting, with a status code~~ **DONE**, use `exit`, with optional numeric exit code.
  - Enums
    - They're just constants, right? *Right?*
    - Could just use the same assign-once operation as defined in Chapter 22 Challenge 3

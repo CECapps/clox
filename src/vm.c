@@ -407,8 +407,13 @@ static InterpretResult run() {
 #ifdef FEATURE_ECHO
     case OP_ECHO: {
       uint8_t arg_count = READ_BYTE();
+      uint8_t pops = 0;
       while(arg_count-- > 0) {
         printValue(peek(arg_count));
+        pops++;
+      }
+      while(pops-- > 0) {
+        pop();
       }
       break;
     }
