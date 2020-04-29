@@ -12,12 +12,13 @@
 
 // Turning off this flag so that my IDE sees these as defined.
 //#xifdef CC_FEATURES
+#define FEATURE_ECHO
 #define FEATURE_EXIT
-#define FEATURE_FUNC_TIME
 #define FEATURE_FUNC_DEBUG
 #define FEATURE_FUNC_STRING_LENGTH
-#define FEATURE_ECHO
+#define FEATURE_FUNC_TIME
 #define FEATURE_STRING_BACKSLASH_ESCAPES
+#define FEATURE_STRING_SINGLE_QUOTED
 //#xendif
 
 #define UINT8_COUNT (UINT8_MAX + 1)

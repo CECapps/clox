@@ -431,10 +431,7 @@ static InterpretResult run() {
 
       // Variation
       default: {
-        char err[30];
-        sprintf(err, "Unknown opcode %d.", instruction);
-        runtimeError(err);
-        // @FIXME: Do I free err here?
+        runtimeError("Unknown opcode %d.", instruction);
         return INTERPRET_RUNTIME_ERROR;
       }
 

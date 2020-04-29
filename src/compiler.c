@@ -464,48 +464,73 @@ static bool isHex(char c) {
 }
 
 static void string(bool canAssign) {
+  // The new string is guaranteed to be at least as long as the previous string,
+  // plus one for the null byte terminator.  If there is any interpolation,
+  // this allocation will be larger than needed.  This should not matter.  I think.
   char *new_str = ALLOCATE(char, parser.previous.length + 1);
   int new_index = 0;
-  // The index starts at 1 to cut off the opening double quote.
-  // The check does < to skip the closing double quote.
-  for(int orig_index = 1; orig_index < parser.previous.length; orig_index++) {
+#ifdef FEATURE_STRING_SINGLE_QUOTED
+  // If single-quoted strings are enabled, only perform backslash interpolation
+  // on double-quoted strings.  If backslash interpolation is disabled, this
+  // code doesn't even get run.
+  bool in_double_quotes = parser.previous.start[0] == '"';
+#else
+  // Single-quoted strings are disabled, so we are absolutely in double quotes.
+  bool in_double_quotes = true;
+#endif
+  // The index starts at 1 to cut off the opening quote, and ends at length - 1
+  // to cut off the closing quote.
+  for(int orig_index = 1; orig_index < (parser.previous.length - 1); orig_index++) {
     char c = parser.previous.start[orig_index];
-    if(c == '\\') {
-      char next = parser.previous.start[orig_index + 1];
-      switch(next) {
-        case 'n':  c = '\n'; orig_index++; break;
-        case 'r':  c = '\r'; orig_index++; break;
-        case 't':  c = '\t'; orig_index++; break;
-        case '"':  c = '"';  orig_index++; break;
-        case '\\':           orig_index++; break;
-        case 'x': {
-          // This is super duper hacky.
-          // After the "\x", we expect two hex characters.  Examine each.
-          char hex_left = parser.previous.start[orig_index + 2];
-          char hex_right = parser.previous.start[orig_index + 3];
-          if(isHex(hex_left) && isHex(hex_right)) {
-            // Now that we know the next two characters are hex, glue them back
-            // together into a new string as expected by strtol.
-            char lolhex[3];
-            lolhex[0] = hex_left;
-            lolhex[1] = hex_right;
-            lolhex[2] = '\0';
-            // The value returned by strtol given two hex digits will never
-            // exceed the storage capacity of c, so this is safe.
-            c = strtol(lolhex, NULL, 16);
-            // We've processed the "x" and then two hex digits, adjust accordingly.
-            orig_index += 3;
-            break;
+    int chars_remaining = parser.previous.length - orig_index;
+    if(c == '\\' && chars_remaining > 0) {
+      if(in_double_quotes) {
+        switch(parser.previous.start[orig_index + 1]) {
+          case 'n':  c = '\n'; orig_index++; break;
+          case 'r':  c = '\r'; orig_index++; break;
+          case 't':  c = '\t'; orig_index++; break;
+          case '"':  c = '"';  orig_index++; break;
+          case '\\':           orig_index++; break;
+          case 'x': {
+            // After the "\x", we expect two hex characters.  Examine each.
+            if(chars_remaining > 2) {
+              char hex_left = parser.previous.start[orig_index + 2];
+              char hex_right = parser.previous.start[orig_index + 3];
+              if(isHex(hex_left) && isHex(hex_right)) {
+                // Now that we know the next two characters are hex, glue them back
+                // together into a new string as expected by strtol.
+                // This is super duper hacky.
+                char lolhex[3];
+                lolhex[0] = hex_left;
+                lolhex[1] = hex_right;
+                lolhex[2] = '\0';
+                // The value returned by strtol given two hex digits will never
+                // exceed the storage capacity of c (char), so this is safe.
+                c = strtol(lolhex, NULL, 16);
+                // We've processed the "x" and then two hex digits, adjust accordingly.
+                orig_index += 3;
+                break;
+              }
+            }
           }
         }
+#ifdef FEATURE_STRING_SINGLE_QUOTED
+      } else if(!in_double_quotes && parser.previous.start[orig_index + 1] == '\'') {
+        // We are not inside of a double-quoted string.  We know that single-quoted
+        // strings are enabled, and we know we are inside of one.  Turn \' into '.
+        c = '\'';
+        orig_index++;
+#endif
       }
     }
     new_str[new_index] = c;
     new_index++;
   }
-  new_str[new_index] = '\0'; // I don't *think* this is needed, but I'm not sure.
+  // copyString makes sure that the canonical representation of this string is
+  // null-terminated, but let's just make sure that it's fine right here and now.
+  new_str[new_index] = '\0';
 
-  emitConstant(OBJ_VAL(copyString(new_str, new_index - 1)));
+  emitConstant(OBJ_VAL(copyString(new_str, new_index)));
 }
 
 #else // FEATURE_STRING_BACKSLASH_ESCAPES

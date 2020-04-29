@@ -196,9 +196,18 @@ static Token number() {
 }
 
 
-static Token string() {
-  while (peek() != '"' && !isAtEnd()) {
+static Token string(char delimiter) {
+  while (peek() != delimiter && !isAtEnd()) {
     if (peek() == '\n') scanner.line++;
+
+#ifdef FEATURE_STRING_BACKSLASH_ESCAPES
+    if(peek() == '\\' && peekNext() == delimiter) {
+      // Consuming the backslash now will cause the call to advance() below to
+      // then consume the delimiter, allowing the loop check to continue.
+      advance();
+    }
+#endif
+
     advance();
   }
 
@@ -243,7 +252,10 @@ Token scanToken() {
     case '>': // >=
       return makeToken(match('=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER);
 
-    case '"': return string();
+    case '"': return string('"');
+#ifdef FEATURE_STRING_SINGLE_QUOTED
+    case '\'': return string('\'');
+#endif
   }
 
   return errorToken("Unexpected character.");
