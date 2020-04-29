@@ -49,7 +49,7 @@ static Value stringLengthNative(int argCount, Value* args) {
   if(!IS_STRING(args[0])) {
     return BOOL_VAL(false);
   }
-  return NUMBER_VAL(strlen(AS_CSTRING(args[0])));
+  return NUMBER_VAL( AS_STRING(args[0])->length );
 }
 #endif
 
