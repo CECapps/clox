@@ -526,10 +526,8 @@ static void string(bool canAssign) {
     new_str[new_index] = c;
     new_index++;
   }
-  // copyString makes sure that the canonical representation of this string is
-  // null-terminated, but let's just make sure that it's fine right here and now.
-  new_str[new_index] = '\0';
-
+  // We don't need to worry about adding a null byte here, it gets taken care of
+  // while sticking the cstring into an ObjString.
   emitConstant(OBJ_VAL(copyString(new_str, new_index)));
 }
 
