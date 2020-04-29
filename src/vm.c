@@ -26,7 +26,7 @@ static Value clockNative(int argCount, Value* args) {
 static Value timeNative(int argCount, Value* args) {
   struct timeval current_time;
   gettimeofday(&current_time, /* timezone */ NULL);
-  return NUMBER_VAL((double)(current_time.tv_sec) + ((double)(current_time.tv_usec) / 100000));
+  return NUMBER_VAL((double)(current_time.tv_sec) + ((double)(current_time.tv_usec) / 1000000));
 }
 #endif
 
@@ -44,9 +44,16 @@ static Value debugDumpStackNative(int argCount, Value* args) {
 }
 #endif
 
+#ifdef FEATURE_FUNC_STRING_LENGTH
+static Value stringLengthNative(int argCount, Value* args) {
+  if(!IS_STRING(args[0])) {
+    return BOOL_VAL(false);
+  }
+  return NUMBER_VAL(strlen(AS_CSTRING(args[0])));
+}
+#endif
 
-// "static" here creates a function that is not visible to the outside world.
-// This function is also not declared in vm.h.
+
 static void resetStack() {
   vm.stackTop = vm.stack;
   vm.frameCount = 0;
@@ -100,6 +107,9 @@ void initVM() {
 #endif
 #ifdef FEATURE_FUNC_DEBUG
   defineNative("debug_dump_stack", debugDumpStackNative);
+#endif
+#ifdef FEATURE_FUNC_STRING_LENGTH
+  defineNative("string_length", stringLengthNative);
 #endif
 
 }

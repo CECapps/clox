@@ -32,7 +32,7 @@
 
 ## Required String Operations
  - ~~Interpolation of certain backslash sequences~~ **DONE** in all double-quoted strings.
- - Length in 8-bit bytes
+ - ~~Length in 8-bit bytes~~ **DONE**, use `string_length()`, returns false with bogus input
  - Extracting a substring at a starting index for a given length
  - Splitting a string along a given character
    - If I end up with userland Arrays, this'd be an Array method
