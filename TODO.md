@@ -137,13 +137,14 @@ I'm adding these because I feel these will be handy.
 
  - System
    - Get environment variable
- - Mixed
+ - Variable Meta
    - Variable has a value (false only for empty string, number zero, nil, empty hashtable)
    - Variable is string
    - Variable is number
    - Variable is boolean
    - Variable is NaN
    - Variable is Infinity (positive or negative)
+   - Get variable hash value as hex string
  - Number
    - Absolute value
    - Remainder from integer division
@@ -151,8 +152,10 @@ I'm adding these because I feel these will be handy.
    - Maximum value in a list
    - Floor
    - Ceiling
-   - Round to precision
-   - Convert to string
+   - Clamp between two values
+   - Round to precision, positive or negative
+   - Convert to string, with precision via rounding
+   - Convert to hex string, integer value only via rounding
    - Create from string
  - String
    - Reverse
@@ -163,7 +166,13 @@ I'm adding these because I feel these will be handy.
    - Contains substring (location != nil) (*userland?*)
    - Starts with substring (location == 0) (*userland?*)
    - Ends with substring (location == strlen - substr len) (*userland?*)
+     - All of these substring functions can probably share the same util function
    - Trim substring=whitespace
    - Trim substring=whitespace from right only
    - Trim substring=whitespace from left only
+   - Left pad to given length
+   - Right pad to given length
    - Matches C stdlib regex
+   - Escape chars to fit in a double-quoted string (\n, \r, \t, \x##, etc)
+   - Splice(original_string, new_string, insert_index, maximum_length?)
+   - Replace all instances of substring in string with a second substring
