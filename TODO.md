@@ -136,7 +136,7 @@
 I'm adding these because I feel these will be handy.
 
  - System
-   - Get environment variable
+   - ~~Get environment variable~~ **`environment_getvar(string environment_variable_name)`**
  - Variable Meta
    - Variable has a value (false only for empty string, number zero, nil, empty hashtable)
    - Variable is string

@@ -109,9 +109,24 @@ Value cc_function_time(int arg_count, Value* args) {
   return NUMBER_VAL((double)(current_time.tv_sec) + ((double)(current_time.tv_usec) / 1000000));
 }
 
+
+Value cc_function_environment_getvar(int arg_count, Value* args) {
+    if(arg_count != 1) {
+        return NIL_VAL;
+    }
+    char * env_var = getenv(AS_CSTRING(args[0]));
+
+    if(env_var == NULL) {
+        return BOOL_VAL(false);
+    }
+
+    return OBJ_VAL(copyString(env_var, strlen(env_var)));
+}
+
 void cc_register_functions() {
-  defineNative("string_substring",  cc_function_string_substring);
-  defineNative("string_length",     cc_function_string_length);
-  defineNative("debug_dump_stack",  cc_function_debug_dump_stack);
-  defineNative("time",              cc_function_time);
+  defineNative("string_substring",      cc_function_string_substring);
+  defineNative("string_length",         cc_function_string_length);
+  defineNative("debug_dump_stack",      cc_function_debug_dump_stack);
+  defineNative("time",                  cc_function_time);
+  defineNative("environment_getvar",    cc_function_environment_getvar);
 }
