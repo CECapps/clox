@@ -136,7 +136,7 @@
 I'm adding these because I feel these will be handy.
 
  - System
-   - ~~Get environment variable~~ **`environment_getvar(string environment_variable_name)`**
+   - ~~Get environment variable~~ **`environment_getvar(string)`**
  - Variable Meta
    - ~~Variable has a value~~ **`val_is_empty(value)`**
      - Only nil, the empty string, and 0 are empty.
@@ -147,16 +147,16 @@ I'm adding these because I feel these will be handy.
    - ~~Variable is Infinity~~ **`val_is_infinity(value)`**
    - Get variable hash value as hex string
  - Number
-   - Absolute value
-   - Remainder from integer division
-   - Minimum value in a list
-   - Maximum value in a list
-   - Floor
-   - Ceiling
-   - Clamp between two values
-   - Round to precision, positive or negative
-   - Convert to string, with precision via rounding
-   - Convert to hex string, integer value only via rounding
+   - ~~Absolute value~~ **`number_absolute(number)`**
+   - ~~Remainder from integer division~~ **`number_remainder(dividend, divisor)`**
+   - ~~Minimum value in a list~~ **`number_minimum(number, ...)`**
+   - ~~Maximum value in a list~~ **`number_maximum(number, ...)`**
+   - ~~Floor~~ **`number_floor(number)`**
+   - ~~Ceiling~~ **`number_ceiling(number)`**
+   - ~~Round to precision, positive or negative~~ **`number_round(number, precision)`**
+   - ~~Clamp between two values~~ **`number_clamp(number, min, max)`**
+   - ~~Convert to string~~ **`number_to_string(number)`**
+   - ~~Convert to hex string, integer value only via rounding~~ **`number_to_hex_string(number)`**
    - Create from string
  - String
    - Reverse
