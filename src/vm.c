@@ -5,8 +5,6 @@
 
 // Needed for FEATURE_EXIT
 #include <stdlib.h>
-// Needed for FEATURE_FUNC_TIME
-#include <sys/time.h>
 
 #include "common.h"
 #include "compiler.h"
@@ -15,123 +13,16 @@
 #include "memory.h"
 #include "vm.h"
 
+#ifdef FEATURE_FUNCTIONS
+#include "functions.h"
+#endif
+
 VM vm;
 
 
 static Value clockNative(int argCount, Value* args) {
   return NUMBER_VAL((double)clock() / CLOCKS_PER_SEC);
 }
-
-#ifdef FEATURE_FUNC_TIME
-static Value timeNative(int argCount, Value* args) {
-  struct timeval current_time;
-  gettimeofday(&current_time, /* timezone */ NULL);
-  return NUMBER_VAL((double)(current_time.tv_sec) + ((double)(current_time.tv_usec) / 1000000));
-}
-#endif
-
-#ifdef FEATURE_FUNC_DEBUG
-static Value debugDumpStackNative(int argCount, Value* args) {
-  int counter = 0;
-  for (Value* slot = vm.stack; slot < vm.stackTop; slot++) {
-    printf("%d:", counter);
-    printValue(*slot);
-    printf(", ");
-    counter++;
-  }
-  printf("\n");
-  return NIL_VAL;
-}
-#endif
-
-#ifdef FEATURE_FUNC_STRING_LENGTH
-static Value stringLengthNative(int argCount, Value* args) {
-  if(!IS_STRING(args[0])) {
-    return BOOL_VAL(false);
-  }
-  return NUMBER_VAL( AS_STRING(args[0])->length );
-}
-#endif
-
-#ifdef FEATURE_FUNC_STRING_SUBSTRING
-static Value stringSubstringNative(int argCount, Value* args) {
-  if(argCount < 1) {
-    // Must at least have the string passed through.
-    return BOOL_VAL(false);
-  }
-  if(!IS_STRING(args[0])) {
-    // Must at least have *a* string passed through.
-    return BOOL_VAL(false);;
-  }
-  ObjString *source_string = AS_STRING(args[0]);
-
-  int starting_index = 0;
-  if(argCount >= 2 && IS_NUMBER(args[1])) {
-    starting_index = (int)AS_NUMBER(args[1]);
-    if(abs(starting_index) > source_string->length) {
-      // We accept both positive and negative indexes.  If either of them is
-      // out of range for the string, we'll assume it's bogus and fail.
-      return BOOL_VAL(false);
-    }
-
-    if(starting_index < 0) {
-      // Given a string length of 8 and a starting index of -5,
-      // 8 + (-5) = 3
-      // [0]  [1]  [2]  [3]  [4]  [5]  [6]  [7]
-      //      -7   -6   -5   -4   -3   -2   -1
-      starting_index = source_string->length + starting_index;
-    }
-  }
-
-  // Given a string length of 8 and a starting index of 3,
-  // (8 - 1) - 3 => 7 - 3 => 4 would be the maximum number of chars we can pull from the right.
-  // Likewise, the index value is the maximum number of chars we can pull from the left.
-  int max_substring_length_right = source_string->length - starting_index;
-  int max_substring_length_left = starting_index;
-  int substring_length = max_substring_length_right;
-  if(argCount == 3 && IS_NUMBER(args[2])) {
-    substring_length = (int)AS_NUMBER(args[2]);
-
-    if(substring_length > max_substring_length_right) {
-      // Can't pull more than the string length.
-      return BOOL_VAL(false);
-    }
-
-    if(substring_length < 0) {
-      substring_length = abs(substring_length);
-      if(substring_length > max_substring_length_left) {
-        // Likewise, we can't pull more than the string length from the left.
-        return BOOL_VAL(false);
-      }
-      // This is pretty silly but I'm doing it anyway.
-      starting_index -= substring_length;
-    }
-  }
-
-  // Could probably do this using memcpy as in concatenate(), but doing manual
-  // memory management freaks me out.  I'm sure this is slower, but I'd much
-  // rather be explicit and paranoid.
-  char* new_string = ALLOCATE(char, substring_length + 1);
-  int new_index = 0;
-  // printf("** starting_index: %d, substring_length: %d\n", starting_index, substring_length);
-  for(int i = starting_index; i < (starting_index + substring_length); i++) {
-    new_string[new_index] = source_string->chars[i];
-    new_index++;
-  }
-  new_string[new_index] = '\0';
-/*
-  printf(
-    "!! string_substring(\"%s\", %d, %d) = \"%s\" (strlen=%d)\n",
-    source_string->chars,
-    starting_index,
-    substring_length,
-    new_string,
-    strlen(new_string)
-  );
-*/
-  return OBJ_VAL(takeString(new_string, new_index));
-}
-#endif
 
 
 static void resetStack() {
@@ -164,8 +55,11 @@ static void runtimeError(const char* format, ...) {
   resetStack();
 }
 
-
+#ifdef FEATURE_FUNCTIONS
+void defineNative(const char* name, NativeFn function) {
+#else
 static void defineNative(const char* name, NativeFn function) {
+#endif
   push(OBJ_VAL(copyString(name, (int)strlen(name))));
   push(OBJ_VAL(newNative(function)));
   tableSet(&vm.globals, AS_STRING(vm.stack[0]), vm.stack[1]);
@@ -182,17 +76,8 @@ void initVM() {
 
   defineNative("clock", clockNative);
 
-#ifdef FEATURE_FUNC_TIME
-  defineNative("time", timeNative);
-#endif
-#ifdef FEATURE_FUNC_DEBUG
-  defineNative("debug_dump_stack", debugDumpStackNative);
-#endif
-#ifdef FEATURE_FUNC_STRING_LENGTH
-  defineNative("string_length", stringLengthNative);
-#endif
-#ifdef FEATURE_FUNC_STRING_SUBSTRING
-  defineNative("string_substring", stringSubstringNative);
+#ifdef FEATURE_FUNCTIONS
+  cc_register_functions();
 #endif
 }
 

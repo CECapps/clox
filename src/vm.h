@@ -45,5 +45,9 @@ InterpretResult interpret(const char* source);
 void push(Value value);
 Value pop();
 
+#ifdef FEATURE_FUNCTIONS
+void defineNative(const char* name, NativeFn function);
+#endif
+
 
 #endif
