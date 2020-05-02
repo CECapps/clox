@@ -138,7 +138,8 @@ I'm adding these because I feel these will be handy.
  - System
    - ~~Get environment variable~~ **`environment_getvar(string environment_variable_name)`**
  - Variable Meta
-   - Variable has a value (false only for empty string, number zero, nil, empty hashtable)
+   - ~~Variable has a value~~ **`val_is_empty(value)`**
+     - Only nil, the empty string, and 0 are empty.
    - Variable is string
    - Variable is number
    - Variable is boolean

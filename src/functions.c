@@ -123,10 +123,33 @@ Value cc_function_environment_getvar(int arg_count, Value* args) {
     return OBJ_VAL(copyString(env_var, strlen(env_var)));
 }
 
+
+Value cc_function_val_is_empty(int arg_count, Value* args) {
+    if(arg_count != 1) {
+        return NIL_VAL;
+    }
+
+    if(IS_NIL(args[0])) {
+        // Nil never has a value, so it is always empty.
+        return BOOL_VAL(true);
+    } else if(IS_STRING(args[0]) && AS_STRING(args[0])->length == 0) {
+        // Only the empty string is considered empty.  Whitespace is not trimmed.
+        return BOOL_VAL(true);
+    } else if(IS_NUMBER(args[0]) && AS_NUMBER(args[0]) == 0.0) {
+        // Only zero is considered empty.
+        return BOOL_VAL(true);
+    }
+
+    // Only the three above things are considered empty.  All other values are
+    // considered not empty, including booleans and function/class types.
+    return BOOL_VAL(false);
+}
+
 void cc_register_functions() {
   defineNative("string_substring",      cc_function_string_substring);
   defineNative("string_length",         cc_function_string_length);
   defineNative("debug_dump_stack",      cc_function_debug_dump_stack);
   defineNative("time",                  cc_function_time);
   defineNative("environment_getvar",    cc_function_environment_getvar);
+  defineNative("val_is_empty",          cc_function_val_is_empty);
 }
