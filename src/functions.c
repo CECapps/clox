@@ -4,6 +4,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <math.h>
 
 #include "common.h"
 #include "compiler.h"
@@ -145,6 +146,53 @@ Value cc_function_val_is_empty(int arg_count, Value* args) {
     return BOOL_VAL(false);
 }
 
+
+Value cc_function_val_is_string(int arg_count, Value* args) {
+    if(arg_count != 1) {
+        return NIL_VAL;
+    }
+    return BOOL_VAL(IS_STRING(args[0]));
+}
+
+
+Value cc_function_val_is_number(int arg_count, Value* args) {
+    if(arg_count != 1) {
+        return NIL_VAL;
+    }
+    return BOOL_VAL(IS_NUMBER(args[0]));
+}
+
+
+Value cc_function_val_is_boolean(int arg_count, Value* args) {
+    if(arg_count != 1) {
+        return NIL_VAL;
+    }
+    return BOOL_VAL(IS_BOOL(args[0]));
+}
+
+
+Value cc_function_val_is_nan(int arg_count, Value* args) {
+    if(arg_count != 1) {
+        return NIL_VAL;
+    }
+    if(!IS_NUMBER(args[0])) {
+        return BOOL_VAL(false);
+    }
+    return BOOL_VAL( isnan(AS_NUMBER(args[0])) != 0 );
+}
+
+
+Value cc_function_val_is_infinity(int arg_count, Value* args) {
+    if(arg_count != 1) {
+        return NIL_VAL;
+    }
+    if(!IS_NUMBER(args[0])) {
+        return BOOL_VAL(false);
+    }
+    return BOOL_VAL( isinf(AS_NUMBER(args[0])) != 0 );
+}
+
+
 void cc_register_functions() {
   defineNative("string_substring",      cc_function_string_substring);
   defineNative("string_length",         cc_function_string_length);
@@ -152,4 +200,9 @@ void cc_register_functions() {
   defineNative("time",                  cc_function_time);
   defineNative("environment_getvar",    cc_function_environment_getvar);
   defineNative("val_is_empty",          cc_function_val_is_empty);
+  defineNative("val_is_string",         cc_function_val_is_string);
+  defineNative("val_is_number",         cc_function_val_is_number);
+  defineNative("val_is_boolean",        cc_function_val_is_boolean);
+  defineNative("val_is_nan",            cc_function_val_is_nan);
+  defineNative("val_is_infinity",       cc_function_val_is_infinity);
 }

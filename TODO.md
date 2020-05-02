@@ -140,11 +140,11 @@ I'm adding these because I feel these will be handy.
  - Variable Meta
    - ~~Variable has a value~~ **`val_is_empty(value)`**
      - Only nil, the empty string, and 0 are empty.
-   - Variable is string
-   - Variable is number
-   - Variable is boolean
-   - Variable is NaN
-   - Variable is Infinity (positive or negative)
+   - ~~Variable is string~~ **`val_is_string(value)`**
+   - ~~Variable is number~~ **`val_is_number(value)`**
+   - ~~Variable is boolean~~ **`val_is_boolean(value)`**
+   - ~~Variable is NaN~~ **`val_is_nan(value)`**
+   - ~~Variable is Infinity~~ **`val_is_infinity(value)`**
    - Get variable hash value as hex string
  - Number
    - Absolute value
