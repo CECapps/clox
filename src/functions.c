@@ -12,6 +12,7 @@
 #include "debug.h"
 #include "object.h"
 #include "memory.h"
+#include "table.h"
 #include "vm.h"
 
 
@@ -368,6 +369,116 @@ Value cc_function_number_to_hex_string(int arg_count, Value* args) {
   return OBJ_VAL(takeString(buffer, buffer_size));
 }
 
+// This initial implementation just has one hashtable, but user code still
+// needs to pass it around.  We'll use infinity as our expected placeholder
+// value.
+#define IS_HASHTABLE(value) (IS_NUMBER(value) && isinf(AS_NUMBER(value)))
+
+Value cc_function_ht_create(int arg_count, Value* args) {
+  return NUMBER_VAL(INFINITY);
+}
+
+
+Value cc_function_ht_set(int arg_count, Value* args) {
+  if(arg_count != 3 || !IS_HASHTABLE(args[0]) || !IS_STRING(args[1])) {
+    return NIL_VAL;
+  }
+  // tableSet returns true if it's a new key, but we don't care here.
+  tableSet(&vm.the_hashtable, AS_STRING(args[1]), args[2]);
+  return BOOL_VAL(true);
+}
+
+
+Value cc_function_ht_has(int arg_count, Value* args) {
+  if(arg_count != 2 || !IS_HASHTABLE(args[0]) || !IS_STRING(args[1])) {
+    return NIL_VAL;
+  }
+  // tableGet returns true if the key exists, which is what we want.
+  Value unused = NIL_VAL;
+  return BOOL_VAL( tableGet(&vm.the_hashtable, AS_STRING(args[1]), &unused) );
+}
+
+
+Value cc_function_ht_update(int arg_count, Value* args) {
+  if(arg_count != 3 || !IS_HASHTABLE(args[0]) || !IS_STRING(args[1])) {
+    return NIL_VAL;
+  }
+  Value old_value = NIL_VAL;
+  // Hmm, maybe there's a case for a set-and-return-if-defined?
+  tableGet(&vm.the_hashtable, AS_STRING(args[1]), &old_value);
+  tableSet(&vm.the_hashtable, AS_STRING(args[1]), args[2]);
+  return old_value;
+}
+
+
+Value cc_function_ht_unset(int arg_count, Value* args) {
+  if(arg_count != 2 || !IS_HASHTABLE(args[0]) || !IS_STRING(args[1])) {
+    return NIL_VAL;
+  }
+  return BOOL_VAL( tableDelete(&vm.the_hashtable, AS_STRING(args[1])) );
+}
+
+
+Value cc_function_ht_get(int arg_count, Value* args) {
+  if(arg_count != 2 || !IS_HASHTABLE(args[0]) || !IS_STRING(args[1])) {
+    return NIL_VAL;
+  }
+  Value result = NIL_VAL;
+  tableGet(&vm.the_hashtable, AS_STRING(args[1]), &result);
+  return result;
+}
+
+
+Value cc_function_ht_count_keys(int arg_count, Value* args) {
+  if(arg_count != 1 || !IS_HASHTABLE(args[0])) {
+    return NIL_VAL;
+  }
+  return NUMBER_VAL(vm.the_hashtable.count);
+}
+
+
+Value cc_function_ht_clear(int arg_count, Value* args) {
+  if(arg_count != 1 || !IS_HASHTABLE(args[0])) {
+    return NIL_VAL;
+  }
+  freeTable(&vm.the_hashtable);
+  initTable(&vm.the_hashtable);
+  return BOOL_VAL(true);
+}
+
+
+Value cc_function_ht_get_key_index(int arg_count, Value* args) {
+  if(arg_count != 2 || !IS_HASHTABLE(args[0]) || !IS_NUMBER(args[1])) {
+    return NIL_VAL;
+  }
+  // We're dealing with two different indexing methods.
+  // The keys for the hash are stored in an array of size .capacity.  However,
+  // only .count entries are in that array.  We need to go through the array
+  // and skip empty entries, counting only ones that are valid.
+  int desired_index = (int)AS_NUMBER(args[1]);
+  int entry_count = 0;
+  bool found = false;
+  int found_index = 0;
+  for(int i = 0; i < vm.the_hashtable.capacity; i++) {
+    // Skip emptry entries and tombstones
+    if(vm.the_hashtable.entries[i].key == NULL) {
+      continue;
+    }
+    // Otherwise we found a valid entry.  If it's the one we're looking for, stop.
+    if(entry_count == desired_index) {
+      found = true;
+      found_index = i;
+      break;
+    }
+    // We found an entry, but it's not the one we're looking for.
+    entry_count++;
+  }
+  if(!found) {
+    return BOOL_VAL(false);
+  }
+  return OBJ_VAL(vm.the_hashtable.entries[found_index].key);
+}
+
 
 void cc_register_functions() {
   defineNative("string_substring",      cc_function_string_substring);
@@ -393,4 +504,14 @@ void cc_register_functions() {
   defineNative("number_clamp",          cc_function_number_clamp);
   defineNative("number_to_string",      cc_function_number_to_string);
   defineNative("number_to_hex_string",  cc_function_number_to_hex_string);
+
+  defineNative("ht_create",             cc_function_ht_create);
+  defineNative("ht_set",                cc_function_ht_set);
+  defineNative("ht_has",                cc_function_ht_has);
+  defineNative("ht_update",             cc_function_ht_update);
+  defineNative("ht_unset",              cc_function_ht_unset);
+  defineNative("ht_get",                cc_function_ht_get);
+  defineNative("ht_count_keys",         cc_function_ht_count_keys);
+  defineNative("ht_clear",              cc_function_ht_clear);
+  defineNative("ht_get_key_index",      cc_function_ht_get_key_index);
 }

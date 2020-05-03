@@ -13,7 +13,9 @@
     picked 75% somewhat arbitrarily. When you build your own hash tables,
     benchmark and tune this."
 */
-#define TABLE_MAX_LOAD 0.75
+// While playing around with userland hashtables, discovered that .75 was a bit
+// too tightly packed to hold the native functions without lots of collisions.
+#define TABLE_MAX_LOAD 0.7
 
 
 void initTable(Table* table) {
