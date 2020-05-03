@@ -14,6 +14,9 @@ typedef struct {
 typedef struct {
   int count;
   int capacity;
+#ifdef FEATURE_USER_HASHES
+  int tombstone_count;
+#endif
   Entry* entries;
 } Table;
 

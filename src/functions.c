@@ -156,6 +156,15 @@ Value cc_function_val_is_string(int arg_count, Value* args) {
     return BOOL_VAL(IS_STRING(args[0]));
 }
 
+#ifdef FEATURE_USER_HASHES
+Value cc_function_val_is_userhash(int arg_count, Value* args) {
+    if(arg_count != 1) {
+        return NIL_VAL;
+    }
+    return BOOL_VAL( IS_USERHASH(args[0]) );
+}
+#endif
+
 
 Value cc_function_val_is_number(int arg_count, Value* args) {
     if(arg_count != 1) {
@@ -369,88 +378,95 @@ Value cc_function_number_to_hex_string(int arg_count, Value* args) {
   return OBJ_VAL(takeString(buffer, buffer_size));
 }
 
-// This initial implementation just has one hashtable, but user code still
-// needs to pass it around.  We'll use infinity as our expected placeholder
-// value.
-#define IS_HASHTABLE(value) (IS_NUMBER(value) && isinf(AS_NUMBER(value)))
-
+#ifdef FEATURE_USER_HASHES
 Value cc_function_ht_create(int arg_count, Value* args) {
-  return NUMBER_VAL(INFINITY);
+  ObjUserHash* desu = newUserHash();
+  Value spam = OBJ_VAL(desu);
+  return spam;
 }
 
 
 Value cc_function_ht_set(int arg_count, Value* args) {
-  if(arg_count != 3 || !IS_HASHTABLE(args[0]) || !IS_STRING(args[1])) {
+  if(arg_count != 3 || !IS_USERHASH(args[0]) || !IS_STRING(args[1])) {
     return NIL_VAL;
   }
+  ObjUserHash* hash = AS_USERHASH(args[0]);
   // tableSet returns true if it's a new key, but we don't care here.
-  tableSet(&vm.the_hashtable, AS_STRING(args[1]), args[2]);
+  tableSet(&hash->table, AS_STRING(args[1]), args[2]);
   return BOOL_VAL(true);
 }
 
 
 Value cc_function_ht_has(int arg_count, Value* args) {
-  if(arg_count != 2 || !IS_HASHTABLE(args[0]) || !IS_STRING(args[1])) {
+  if(arg_count != 2 || !IS_USERHASH(args[0]) || !IS_STRING(args[1])) {
     return NIL_VAL;
   }
+  ObjUserHash* hash = AS_USERHASH(args[0]);
   // tableGet returns true if the key exists, which is what we want.
   Value unused = NIL_VAL;
-  return BOOL_VAL( tableGet(&vm.the_hashtable, AS_STRING(args[1]), &unused) );
+  return BOOL_VAL( tableGet(&hash->table, AS_STRING(args[1]), &unused) );
 }
 
 
 Value cc_function_ht_update(int arg_count, Value* args) {
-  if(arg_count != 3 || !IS_HASHTABLE(args[0]) || !IS_STRING(args[1])) {
+  if(arg_count != 3 || !IS_USERHASH(args[0]) || !IS_STRING(args[1])) {
     return NIL_VAL;
   }
+  ObjUserHash* hash = AS_USERHASH(args[0]);
   Value old_value = NIL_VAL;
   // Hmm, maybe there's a case for a set-and-return-if-defined?
-  tableGet(&vm.the_hashtable, AS_STRING(args[1]), &old_value);
-  tableSet(&vm.the_hashtable, AS_STRING(args[1]), args[2]);
+  tableGet(&hash->table, AS_STRING(args[1]), &old_value);
+  tableSet(&hash->table, AS_STRING(args[1]), args[2]);
   return old_value;
 }
 
 
 Value cc_function_ht_unset(int arg_count, Value* args) {
-  if(arg_count != 2 || !IS_HASHTABLE(args[0]) || !IS_STRING(args[1])) {
+  if(arg_count != 2 || !IS_USERHASH(args[0]) || !IS_STRING(args[1])) {
     return NIL_VAL;
   }
-  return BOOL_VAL( tableDelete(&vm.the_hashtable, AS_STRING(args[1])) );
+  ObjUserHash* hash = AS_USERHASH(args[0]);
+  return BOOL_VAL( tableDelete(&hash->table, AS_STRING(args[1])) );
 }
 
 
 Value cc_function_ht_get(int arg_count, Value* args) {
-  if(arg_count != 2 || !IS_HASHTABLE(args[0]) || !IS_STRING(args[1])) {
+  if(arg_count != 2 || !IS_USERHASH(args[0]) || !IS_STRING(args[1])) {
     return NIL_VAL;
   }
+  ObjUserHash* hash = AS_USERHASH(args[0]);
   Value result = NIL_VAL;
-  tableGet(&vm.the_hashtable, AS_STRING(args[1]), &result);
+  tableGet(&hash->table, AS_STRING(args[1]), &result);
   return result;
 }
 
 
 Value cc_function_ht_count_keys(int arg_count, Value* args) {
-  if(arg_count != 1 || !IS_HASHTABLE(args[0])) {
+  if(arg_count != 1 || !IS_USERHASH(args[0])) {
     return NIL_VAL;
   }
-  return NUMBER_VAL(vm.the_hashtable.count);
+  ObjUserHash* hash = AS_USERHASH(args[0]);
+  return NUMBER_VAL(hash->table.count - hash->table.tombstone_count);
 }
 
 
 Value cc_function_ht_clear(int arg_count, Value* args) {
-  if(arg_count != 1 || !IS_HASHTABLE(args[0])) {
+  if(arg_count != 1 || !IS_USERHASH(args[0])) {
     return NIL_VAL;
   }
-  freeTable(&vm.the_hashtable);
-  initTable(&vm.the_hashtable);
+  ObjUserHash* hash = AS_USERHASH(args[0]);
+  freeTable(&hash->table);
+  initTable(&hash->table);
   return BOOL_VAL(true);
 }
 
 
 Value cc_function_ht_get_key_index(int arg_count, Value* args) {
-  if(arg_count != 2 || !IS_HASHTABLE(args[0]) || !IS_NUMBER(args[1])) {
+  if(arg_count != 2 || !IS_USERHASH(args[0]) || !IS_NUMBER(args[1])) {
     return NIL_VAL;
   }
+  ObjUserHash* hash = AS_USERHASH(args[0]);
+  Entry* entries = hash->table.entries;
   // We're dealing with two different indexing methods.
   // The keys for the hash are stored in an array of size .capacity.  However,
   // only .count entries are in that array.  We need to go through the array
@@ -459,9 +475,9 @@ Value cc_function_ht_get_key_index(int arg_count, Value* args) {
   int entry_count = 0;
   bool found = false;
   int found_index = 0;
-  for(int i = 0; i < vm.the_hashtable.capacity; i++) {
+  for(int i = 0; i < hash->table.capacity; i++) {
     // Skip emptry entries and tombstones
-    if(vm.the_hashtable.entries[i].key == NULL) {
+    if(entries[i].key == NULL) {
       continue;
     }
     // Otherwise we found a valid entry.  If it's the one we're looking for, stop.
@@ -476,9 +492,9 @@ Value cc_function_ht_get_key_index(int arg_count, Value* args) {
   if(!found) {
     return BOOL_VAL(false);
   }
-  return OBJ_VAL(vm.the_hashtable.entries[found_index].key);
+  return OBJ_VAL(entries[found_index].key);
 }
-
+#endif
 
 static bool random_seeded = false;
 Value cc_function_number_random(int arg_count, Value* args) {
@@ -512,6 +528,9 @@ void cc_register_functions() {
 
   defineNative("val_is_empty",          cc_function_val_is_empty);
   defineNative("val_is_string",         cc_function_val_is_string);
+#ifdef FEATURE_USER_HASHES
+  defineNative("val_is_userhash",       cc_function_val_is_userhash);
+#endif
   defineNative("val_is_number",         cc_function_val_is_number);
   defineNative("val_is_boolean",        cc_function_val_is_boolean);
   defineNative("val_is_nan",            cc_function_val_is_nan);
@@ -529,6 +548,7 @@ void cc_register_functions() {
   defineNative("number_to_hex_string",  cc_function_number_to_hex_string);
   defineNative("number_random",         cc_function_number_random);
 
+#ifdef FEATURE_USER_HASHES
   defineNative("ht_create",             cc_function_ht_create);
   defineNative("ht_set",                cc_function_ht_set);
   defineNative("ht_has",                cc_function_ht_has);
@@ -538,4 +558,5 @@ void cc_register_functions() {
   defineNative("ht_count_keys",         cc_function_ht_count_keys);
   defineNative("ht_clear",              cc_function_ht_clear);
   defineNative("ht_get_key_index",      cc_function_ht_get_key_index);
+#endif
 }

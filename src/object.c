@@ -20,6 +20,14 @@ static Obj* allocateObject(size_t size, ObjType type) {
   return object;
 }
 
+#ifdef FEATURE_USER_HASHES
+ObjUserHash* newUserHash() {
+  ObjUserHash* hashtable = ALLOCATE_OBJ(ObjUserHash, OBJ_USERHASH);
+
+  initTable(&hashtable->table);
+  return hashtable;
+}
+#endif
 
 ObjFunction* newFunction() {
   ObjFunction* function = ALLOCATE_OBJ(ObjFunction, OBJ_FUNCTION);
@@ -113,6 +121,12 @@ void printObject(Value value) {
     case OBJ_STRING:
       printf("%s", AS_CSTRING(value));
       break;
+
+#ifdef FEATURE_USER_HASHES
+    case OBJ_USERHASH:
+      printf("<user hash>");
+      break;
+#endif
 
   }
 }
