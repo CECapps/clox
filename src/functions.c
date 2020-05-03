@@ -480,6 +480,29 @@ Value cc_function_ht_get_key_index(int arg_count, Value* args) {
 }
 
 
+static bool random_seeded = false;
+Value cc_function_number_random(int arg_count, Value* args) {
+  if(arg_count != 2 || !IS_NUMBER(args[0]) || !IS_NUMBER(args[1])) {
+    return NIL_VAL;
+  }
+  if(!random_seeded) {
+    srand48(time(0));
+    random_seeded = true;
+  }
+  // We're turning a floating point value between 0 and 1 into an integer
+  // between the two passed values, which we will assume are integers themselves.
+  // Because we're truncating the final value, we need to bump the greater
+  // number up by one to make sure that it's included in the result.  The
+  // distribution of this looks pretty even based on some very basic testing.
+  double greater = 1 + fmax( AS_NUMBER(args[0]), AS_NUMBER(args[1]) );
+  double lesser = fmin( AS_NUMBER(args[0]), AS_NUMBER(args[1]) );
+  double range = greater - lesser;
+  double new_value = trunc( (drand48() * range) + lesser );
+
+  return NUMBER_VAL( new_value );
+}
+
+
 void cc_register_functions() {
   defineNative("string_substring",      cc_function_string_substring);
   defineNative("string_length",         cc_function_string_length);
@@ -504,6 +527,7 @@ void cc_register_functions() {
   defineNative("number_clamp",          cc_function_number_clamp);
   defineNative("number_to_string",      cc_function_number_to_string);
   defineNative("number_to_hex_string",  cc_function_number_to_hex_string);
+  defineNative("number_random",         cc_function_number_random);
 
   defineNative("ht_create",             cc_function_ht_create);
   defineNative("ht_set",                cc_function_ht_set);
