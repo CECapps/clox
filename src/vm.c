@@ -19,6 +19,9 @@
 #ifdef FEATURE_USER_HASHES
 #include "ext/userhash.h"
 #endif
+#ifdef FEATURE_USER_ARRAYS
+#include "ext/userarray.h"
+#endif
 
 VM vm;
 
@@ -85,6 +88,9 @@ void initVM() {
 #endif
 #ifdef FEATURE_USER_HASHES
   cc_register_ext_userhash();
+#endif
+#ifdef FEATURE_USER_ARRAYS
+  cc_register_ext_userarray();
 #endif
 }
 

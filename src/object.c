@@ -29,6 +29,15 @@ ObjUserHash* newUserHash() {
 }
 #endif
 
+#ifdef FEATURE_USER_ARRAYS
+ObjUserArray* newUserArray() {
+  ObjUserArray* array = ALLOCATE_OBJ(ObjUserArray, OBJ_USERARRAY);
+
+  initValueArray(&array->inner);
+  return array;
+}
+#endif
+
 ObjFunction* newFunction() {
   ObjFunction* function = ALLOCATE_OBJ(ObjFunction, OBJ_FUNCTION);
 
@@ -125,6 +134,12 @@ void printObject(Value value) {
 #ifdef FEATURE_USER_HASHES
     case OBJ_USERHASH:
       printf("<user hash>");
+      break;
+#endif
+
+#ifdef FEATURE_USER_ARRAYS
+    case OBJ_USERARRAY:
+      printf("<user array>");
       break;
 #endif
 

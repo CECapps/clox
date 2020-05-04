@@ -15,6 +15,9 @@
 #ifdef FEATURE_USER_HASHES
 #define IS_USERHASH(value)      isObjType(value, OBJ_USERHASH)
 #endif
+#ifdef FEATURE_USER_ARRAYS
+#define IS_USERARRAY(value)     isObjType(value, OBJ_USERARRAY)
+#endif
 
 #define AS_FUNCTION(value)      ((ObjFunction*)AS_OBJ(value))
 #define AS_NATIVE(value)        (((ObjNative*)AS_OBJ(value))->function)
@@ -24,6 +27,9 @@
 #ifdef FEATURE_USER_HASHES
 #define AS_USERHASH(value)      ((ObjUserHash*)AS_OBJ(value))
 #endif
+#ifdef FEATURE_USER_ARRAYS
+#define AS_USERARRAY(value)     ((ObjUserArray*)AS_OBJ(value))
+#endif
 
 typedef enum {
   OBJ_FUNCTION,
@@ -31,6 +37,9 @@ typedef enum {
   OBJ_STRING,
 #ifdef FEATURE_USER_HASHES
   OBJ_USERHASH,
+#endif
+#ifdef FEATURE_USER_ARRAYS
+  OBJ_USERARRAY,
 #endif
 } ObjType;
 
@@ -64,6 +73,13 @@ typedef struct {
 } ObjUserHash;
 #endif
 
+#ifdef FEATURE_USER_ARRAYS
+typedef struct {
+  Obj obj;
+  ValueArray inner;
+} ObjUserArray;
+#endif
+
 struct sObjString {
   Obj obj;
   int length;
@@ -74,6 +90,9 @@ struct sObjString {
 
 #ifdef FEATURE_USER_HASHES
 ObjUserHash* newUserHash();
+#endif
+#ifdef FEATURE_USER_ARRAYS
+ObjUserArray* newUserArray();
 #endif
 ObjFunction* newFunction();
 ObjNative* newNative(NativeFn function);

@@ -1,18 +1,4 @@
-#include <stdarg.h>
-#include <stdio.h>
-#include <string.h>
-#include <time.h>
-#include <stdlib.h>
-#include <sys/time.h>
-#include <math.h>
-#include <fenv.h>
-
 #include "../common.h"
-#include "../compiler.h"
-#include "../debug.h"
-#include "../object.h"
-#include "../memory.h"
-#include "../table.h"
 #include "../vm.h"
 
 
@@ -25,9 +11,7 @@ Value cc_function_val_is_userhash(int arg_count, Value* args) {
 
 
 Value cc_function_ht_create(int arg_count, Value* args) {
-  ObjUserHash* desu = newUserHash();
-  Value spam = OBJ_VAL(desu);
-  return spam;
+  return OBJ_VAL(newUserHash());
 }
 
 
