@@ -233,7 +233,22 @@ Value cc_function_ar_shift(int arg_count, Value* args) {
 }
 
 
-Value cc_function_ar_clone(int arg_count, Value* args) {}
+Value cc_function_ar_clone(int arg_count, Value* args) {
+    if(arg_count != 1 || !IS_USERARRAY(args[0])) {
+        return NIL_VAL;
+    }
+
+    ObjUserArray* ua = AS_USERARRAY(args[0]);
+    ObjUserArray* new_ua = newUserArray();
+    ua_grow(new_ua, ua->inner.count);
+    for(int i = 0; i < ua->inner.count; i++) {
+        new_ua->inner.values[i] = ua->inner.values[i];
+    }
+    new_ua->inner.count = ua->inner.count;
+    return OBJ_VAL(new_ua);
+}
+
+
 Value cc_function_ar_find(int arg_count, Value* args) {}
 Value cc_function_ar_contains(int arg_count, Value* args) {}
 Value cc_function_ar_chunk(int arg_count, Value* args) {}
