@@ -176,7 +176,7 @@ Value cc_function_ar_push(int arg_count, Value* args) {
     }
     ua->inner.values[target_index] = args[1];
     ua->inner.count++;
-    return NUMBER_VAL(target_index);
+    return NUMBER_VAL(ua->inner.count);
 }
 
 
@@ -201,7 +201,20 @@ Value cc_function_ar_unshift(int arg_count, Value* args) {
 }
 
 
-Value cc_function_ar_pop(int arg_count, Value* args) {}
+Value cc_function_ar_pop(int arg_count, Value* args) {
+    if(arg_count != 1 || !IS_USERARRAY(args[0])) {
+        return NIL_VAL;
+    }
+
+    ObjUserArray* ua = AS_USERARRAY(args[0]);
+
+    Value old_value = ua->inner.values[ua->inner.count - 1];
+    ua->inner.values[ua->inner.count - 1] = NIL_VAL;
+    ua->inner.count--;
+    return old_value;
+}
+
+
 Value cc_function_ar_shift(int arg_count, Value* args) {}
 Value cc_function_ar_clone(int arg_count, Value* args) {}
 Value cc_function_ar_find(int arg_count, Value* args) {}
@@ -210,6 +223,8 @@ Value cc_function_ar_chunk(int arg_count, Value* args) {}
 Value cc_function_ar_shuffle(int arg_count, Value* args) {}
 Value cc_function_ar_reverse(int arg_count, Value* args) {}
 Value cc_function_ar_sort(int arg_count, Value* args) {}
+Value cc_function_ar_slice(int arg_count, Value* args) {}
+Value cc_function_ar_splice(int arg_count, Value* args) {}
 
 void cc_register_ext_userarray() {
 
@@ -239,5 +254,8 @@ void cc_register_ext_userarray() {
     defineNative("ar_shuffle",    cc_function_ar_shuffle);
     defineNative("ar_reverse",    cc_function_ar_reverse);
 
-    defineNative("ar_sort",   cc_function_ar_sort);
+    defineNative("ar_sort",       cc_function_ar_sort);
+
+    defineNative("ar_slice",      cc_function_ar_slice);
+    defineNative("ar_splice",     cc_function_ar_splice);
 }
