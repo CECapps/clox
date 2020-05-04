@@ -68,6 +68,31 @@ Value cc_function_ar_set(int arg_count, Value* args) {
 }
 
 
+Value cc_function_ar_update(int arg_count, Value* args) {
+    if(arg_count != 3 || !IS_USERARRAY(args[0]) || !IS_NUMBER(args[1])) {
+        return NIL_VAL;
+    }
+
+    ObjUserArray* ua = AS_USERARRAY(args[0]);
+    int16_t target_index = ua_normalize_index(ua, AS_NUMBER(args[1]), false);
+    if(target_index < 0) {
+        return BOOL_VAL(false);
+    }
+
+    // Like ar_set, ar_update can be called with an index that's out of range.
+    if(target_index >= ua->inner.capacity) {
+        ua_grow(ua, target_index + 1);
+    }
+    // ua_grow takes care of initializing previously-out-of-range values to nil.
+    Value old_value = ua->inner.values[target_index];
+    ua->inner.values[target_index] = args[2];
+    if(target_index >= ua->inner.count) {
+        ua->inner.count = target_index + 1;
+    }
+    return old_value;
+}
+
+
 Value cc_function_ar_has(int arg_count, Value* args) {
     if(arg_count != 2 || !IS_USERARRAY(args[0]) || !IS_NUMBER(args[1])) {
         return NIL_VAL;
@@ -158,6 +183,7 @@ void cc_register_ext_userarray() {
     defineNative("ar_create",     cc_function_ar_create);
 
     defineNative("ar_set",        cc_function_ar_set);
+    defineNative("ar_update",     cc_function_ar_update);
     defineNative("ar_has",        cc_function_ar_has);
     defineNative("ar_get",        cc_function_ar_get);
     defineNative("ar_remove",     cc_function_ar_remove);
