@@ -164,7 +164,22 @@ Value cc_function_ar_clear(int arg_count, Value* args) {
 }
 
 
-Value cc_function_ar_push(int arg_count, Value* args) {}
+Value cc_function_ar_push(int arg_count, Value* args) {
+    if(arg_count != 2 || !IS_USERARRAY(args[0])) {
+        return NIL_VAL;
+    }
+
+    ObjUserArray* ua = AS_USERARRAY(args[0]);
+    int16_t target_index = ua->inner.count;
+    if(target_index >= ua->inner.capacity) {
+        ua_grow(ua, target_index + 1);
+    }
+    ua->inner.values[target_index] = args[1];
+    ua->inner.count++;
+    return NUMBER_VAL(target_index);
+}
+
+
 Value cc_function_ar_unshift(int arg_count, Value* args) {}
 Value cc_function_ar_pop(int arg_count, Value* args) {}
 Value cc_function_ar_shift(int arg_count, Value* args) {}
