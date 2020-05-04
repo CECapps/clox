@@ -16,6 +16,9 @@
 #ifdef FEATURE_FUNCTIONS
 #include "ext/functions.h"
 #endif
+#ifdef FEATURE_USER_HASHES
+#include "ext/userhash.h"
+#endif
 
 VM vm;
 
@@ -78,7 +81,10 @@ void initVM() {
   defineNative("clock", clockNative);
 
 #ifdef FEATURE_FUNCTIONS
-  cc_register_functions();
+  cc_register_ext_functions();
+#endif
+#ifdef FEATURE_USER_HASHES
+  cc_register_ext_userhash();
 #endif
 }
 
