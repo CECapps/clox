@@ -41,16 +41,30 @@
 
 ### Immediate Priority
  - C20c1: After adding support for all `Obj`s as keys in the internal hashtable
-   mechanism (Impl->Immediate), expose hashtables to the language through native
-   functions:
-     - hashtable = ht_create();
-     - mixed = ht_get(hashtable, key)
-     - mixed = ht_set(hashtable, key, value)
-     - bool = ht_update(hashtable, key, value)
-     - bool = ht_unset(hashtable, key)
-     - bool = ht_has(hashtable, key)
-     - number = ht_count_keys(hashtable)
-     - clear(hashtable)
+   mechanism (Impl->Immediate), ~~expose hashtables to the language through native
+   functions~~: **DONE-ISH!**
+     - Hashes are first-class Objs, but there is no special language syntax.
+     - All hash operations are performed using the following functions.
+     - All functions return `nil` on error, which can sometimes be confusing if
+       you were expecting an actual `nil`.
+       - `hashtable = ht_create();`
+       - `bool_success = ht_set(hashtable, string_key, value);`
+         - Always returns `true`.
+       - `bool_key_exists = ht_has(hashtable, string_key);`
+       - `old_value = ht_update(hashtable, string_key, new_value);`
+         - Returns `nil` if there was no previous value, but succeeds.
+       - `bool_deleted = ht_unset(hashtable, string_key);`
+         - Returns `false` if the key did not exist, `true` otherwise.
+       - `value = ht_get(hashtable, string_key);`
+       - `int_key_count = ht_count_keys(hashtable);`
+       - `bool_success = ht_clear(hashtable);`
+         - Resets the entire hash, always returns `true`.
+       - `string_key = ht_get_key_index(hashtable, int_index);`
+         - Crawls the list of keys and returns the one at the given index.  Because
+           assigning to hashes can cause them to grow and rewrite, key order is
+           *never* guaranteed.  Manipulating the hash while iterating over the
+           keys using this function *will* cause weirdness. Accessing an out of
+           bounds key will return `nil`.
 
 ### Soon Priority
  - C17c3: The `?:` operator.
@@ -101,8 +115,8 @@
    - Not really needed, but there's a Challenge for it, so ...
  - A "does this variable exist" ... operator?
    - Hmm, `exists foo` vs `exists(foo)`?
- - A way to determine if a variable is a string
- - A way to determine if a variable is a number
+ - ~~A way to determine if a variable is a string~~ **DONE**
+ - ~~A way to determine if a variable is a number~~ **DONE**
  - A "is this variable an instance of this class" operator
    - Hmm, `foo instanceof ClassName`
    - Hmm, `foo instanceof "ClassName"`?
@@ -116,8 +130,9 @@
       - Don't seem to need actual default values, so this might be overkill
  - Arrays
    - ... or objects that look like an Array
- - Hashes
-   - ... or objects that look like a Hash
+ - ~~Hashes~~
+   - ~~... or objects that look like a Hash~~
+   - **DONE** enough with the userland hash impl.  The API is ugly but it works.
 
 ## Required OO Features
  - Exceptions
