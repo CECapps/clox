@@ -180,7 +180,27 @@ Value cc_function_ar_push(int arg_count, Value* args) {
 }
 
 
-Value cc_function_ar_unshift(int arg_count, Value* args) {}
+Value cc_function_ar_unshift(int arg_count, Value* args) {
+    if(arg_count != 2 || !IS_USERARRAY(args[0])) {
+        return NIL_VAL;
+    }
+
+    ObjUserArray* ua = AS_USERARRAY(args[0]);
+    // We're moving all of the elements down by one, then setting the passed
+    // value as index zero.  Let's make sure we have room to grow.
+    ua->inner.count++;
+    if(ua->inner.count >= ua->inner.capacity) {
+        ua_grow(ua, ua->inner.count + 1);
+    }
+    for(int i = ua->inner.count; i > 0; i--) {
+        int j = i - 1;
+        ua->inner.values[i] = ua->inner.values[j];
+    }
+    ua->inner.values[0] = args[1];
+    return NUMBER_VAL(ua->inner.count);
+}
+
+
 Value cc_function_ar_pop(int arg_count, Value* args) {}
 Value cc_function_ar_shift(int arg_count, Value* args) {}
 Value cc_function_ar_clone(int arg_count, Value* args) {}
