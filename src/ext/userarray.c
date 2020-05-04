@@ -249,8 +249,42 @@ Value cc_function_ar_clone(int arg_count, Value* args) {
 }
 
 
-Value cc_function_ar_find(int arg_count, Value* args) {}
-Value cc_function_ar_contains(int arg_count, Value* args) {}
+Value cc_function_ar_find(int arg_count, Value* args) {
+    if(arg_count < 2 || arg_count > 3 || !IS_USERARRAY(args[0])) {
+        return NIL_VAL;
+    }
+
+    ObjUserArray* ua = AS_USERARRAY(args[0]);
+    Value target_value = args[1];
+    int16_t minimum_index = 0;
+    if(arg_count == 3 && IS_NUMBER(args[2])) {
+        minimum_index = ua_normalize_index(ua, AS_NUMBER(args[2]), true);
+        if(minimum_index < 0) {
+            return NIL_VAL;
+        }
+    }
+
+    for(int i = minimum_index; i < ua->inner.count; i++) {
+        if(valuesEqual(target_value, ua->inner.values[i])) {
+            return NUMBER_VAL(i);
+        }
+    }
+    return BOOL_VAL(false);
+}
+
+
+Value cc_function_ar_contains(int arg_count, Value* args) {
+    Value find_result = cc_function_ar_find(arg_count, args);
+    if(IS_NIL(find_result)) {
+        return NIL_VAL;
+    }
+    if(IS_NUMBER(find_result)) {
+        return BOOL_VAL(true);
+    }
+    return BOOL_VAL(false);
+}
+
+
 Value cc_function_ar_chunk(int arg_count, Value* args) {}
 Value cc_function_ar_shuffle(int arg_count, Value* args) {}
 Value cc_function_ar_reverse(int arg_count, Value* args) {}
