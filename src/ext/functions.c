@@ -7,13 +7,13 @@
 #include <math.h>
 #include <fenv.h>
 
-#include "common.h"
-#include "compiler.h"
-#include "debug.h"
-#include "object.h"
-#include "memory.h"
-#include "table.h"
-#include "vm.h"
+#include "../common.h"
+#include "../compiler.h"
+#include "../debug.h"
+#include "../object.h"
+#include "../memory.h"
+#include "../table.h"
+#include "../vm.h"
 
 
 Value cc_function_string_substring(int arg_count, Value* args) {

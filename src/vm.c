@@ -14,7 +14,7 @@
 #include "vm.h"
 
 #ifdef FEATURE_FUNCTIONS
-#include "functions.h"
+#include "ext/functions.h"
 #endif
 
 VM vm;
