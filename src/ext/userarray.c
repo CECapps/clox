@@ -621,28 +621,119 @@ static int8_t sort_value_pair(Value example, Value specimen) {
     return 0;
 }
 
-void sort_bruteforce(int count, Value* values) {
-    bool is_sorted = false;
-    int rounds = 0;
-    int swap_count = 0;
-    while(is_sorted == false) {
-        is_sorted = true;
-        for(int i = 0; i < count - 1; i++) {
-            int j = i + 1;
-            Value left = values[i];
-            Value right = values[j];
-            if(sort_value_pair(left, right) == -1) {
-                // The comparison routine says that the right Value is sorted
-                // less than the left Value.  Swap them.
-                swap_count++;
-                is_sorted = false;
-                values[i] = right;
-                values[j] = left;
-            }
-        }
-        // printf("** sort_bruteforce round %d: %d swaps\n", rounds++, swap_count);
-        swap_count = 0;
+
+static void quicksort_recursive(int min_index, int max_index, Value* values) {
+    // Don't attempt to sort lists of size 0 or 1.
+    if(max_index - max_index < 2) {
+        return;
     }
+/*
+    An explanation of quicksort based on:
+    https://www.khanacademy.org/computing/computer-science/algorithms/quick-sort/a/overview-of-quicksort
+    https://www.khanacademy.org/computing/computer-science/algorithms/quick-sort/a/linear-time-partitioning
+
+    Those documents describe keeping track of multiple indexes for the various
+    parts of the array, but as you will see, we really only need to keep track
+    of the gt index.  Everything else can be derived from the passed min and
+    max indexes, given that we always pivot on the final index.  (The lte index
+    is always min_index!)
+
+    We are given an array of Values, and a range to operate within that array.
+    We select the last element of the array.  This is our pivot value.  We will
+    partition the array into two sections: those less than or equal to the pivot,
+    and those that are larger than the pivot.
+
+    We will keep track of these partitions by keeping two indexes:
+    1) The index of the start of the lte values, initially 0
+    2) The index of the start of the gt values, initially 0
+
+    We will iterate through the array and compare each value to the pivot.
+
+    Here's our sample array:
+    0     1     2     3     4     5     6     7
+    [15]  [17]  [11]  [12]  [19]  [11]  [13]  [14]
+    (lte)
+    (gt)
+
+    Our pivot is index 7, value 14.
+
+    Start by comparing element 0 to our pivot.  It's greater than the pivot.  The
+    gt index is checked.  Because we are inside the gt range, we will do nothing.
+
+    Element 1 is next.  Again because it's greater than the pivot, and we're inside
+    the gt range, we will do nothing.
+
+    Element 2 is next.  It is lte to the pivot.  We will swap it with the first
+    index of the gt list (element 0), and then increment the gt index by one.
+    The array now looks like:
+
+    0     1     2     3     4     5     6     7
+    [11]  [17]  [15]  [12]  [19]  [11]  [13]  [14]
+    (lte) (gt)                                (p)
+
+    Element 3 is next.  It is lte to the pivot.  Swap it with the first index of
+    the gt list, inc the gt index.
+
+    0     1     2     3     4     5     6     7
+    [11]  [12]  [15]  [17]  [19]  [11]  [13]  [14]
+    (lte)       (gt)                          (p)
+
+    Element 4 is next.  It is larger and inside the gt range, so we skip.
+
+    Element 5 is next.  It is smaller.  Swap it with the gt index, inc gt.
+
+    0     1     2     3     4     5     6     7
+    [11]  [12]  [11]  [17]  [19]  [15]  [13]  [14]
+    (lte)             (gt)                    (p)
+
+    Element 6 is smaller, swap with gt, inc gt.
+
+    0     1     2     3     4     5     6     7
+    [11]  [12]  [11]  [13]  [19]  [15]  [17]  [14]
+    (lte)                   (gt)              (p)
+
+    We're done with the first step.  Swap the gt index and the pivot, then inc gt.
+
+    0     1     2     3     4     5     6     7
+    [11]  [12]  [11]  [13]  [14]  [15]  [17]  [19]
+    (lte)                   (p)   (gt)
+
+    Recursion time.  Sort the left half of the array, from the min index through
+    to the pivot.  Then sort the right half of the array, from the gt index
+    through to max index.
+*/
+    int pivot_index = max_index;
+    int gt_index = min_index;
+    Value pivot = values[pivot_index];
+    for(int i = min_index; i < pivot_index; i++) {
+        Value specemin = values[i];
+        if(sort_value_pair(pivot, specemin) < 1) {
+        // The specemin value is sorted lower than or equal to the pivot.  Move it
+        // to the end of the lte section, which is denoted by the gt index.
+        // As the lte section grows, the gt index will increment accordingly.
+            values[i] = values[gt_index];
+            values[gt_index] = specemin;
+            gt_index++;
+        }
+    }
+    // We've now split the array into two sections:
+    // min_index through gt_index - 1: All values lte to the pivot.
+    // gt_index through pivot_index - 1: All values gt to the pivot.
+    // The pivot belongs with the gt section, so swap it there now.
+    values[pivot_index] = values[gt_index];
+    values[gt_index] = pivot;
+    // Recursion time.  Call ourselves for the left and right sides of the array.
+    if(gt_index - min_index > 1) {
+        quicksort_recursive(min_index, gt_index - 1, values);
+    }
+    if(max_index - gt_index > 1) {
+        quicksort_recursive(gt_index, max_index, values);
+    }
+}
+
+
+static void sort_quicksort(int count, Value* values) {
+    return quicksort_recursive(0, count - 1, values);
 }
 
 
@@ -660,7 +751,7 @@ Value cc_function_ar_sort(int arg_count, Value* args) {
         target_array->inner.count++;
     }
 
-    sort_bruteforce(target_array->inner.count, target_array->inner.values);
+    sort_quicksort(target_array->inner.count, target_array->inner.values);
 
     return OBJ_VAL(target_array);
 }
