@@ -362,7 +362,23 @@ Value cc_function_ar_shuffle(int arg_count, Value* args) {
 }
 
 
-Value cc_function_ar_reverse(int arg_count, Value* args) {}
+Value cc_function_ar_reverse(int arg_count, Value* args) {
+    if(arg_count != 1 || !IS_USERARRAY(args[0])) {
+        return NIL_VAL;
+    }
+
+    ObjUserArray* ua = AS_USERARRAY(args[0]);
+    ObjUserArray* target_array = newUserArray();
+    ua_grow(target_array, ua->inner.count);
+
+    for(int i = 0; i < ua->inner.count; i++) {
+        target_array->inner.values[ ua->inner.count - 1 - i ] = ua->inner.values[i];
+        target_array->inner.count++;
+    }
+    return OBJ_VAL(target_array);
+}
+
+
 Value cc_function_ar_sort(int arg_count, Value* args) {}
 Value cc_function_ar_slice(int arg_count, Value* args) {}
 Value cc_function_ar_splice(int arg_count, Value* args) {}
