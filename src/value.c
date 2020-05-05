@@ -41,7 +41,7 @@ void printValue(Value value) {
       printf("nil");
       break;
     case VAL_NUMBER:
-      printf("%.17g", AS_NUMBER(value)); // Variation to get large numbers to not be exponents
+      printf("%.15g", AS_NUMBER(value)); // Variation, consistency with number_to_string()
       break;
     case VAL_OBJ:
       printObject(value);

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <math.h>
+#include <string.h>
 
 #include "../memory.h"
 #include "../object.h"
@@ -379,9 +380,6 @@ Value cc_function_ar_reverse(int arg_count, Value* args) {
 }
 
 
-Value cc_function_ar_sort(int arg_count, Value* args) {}
-
-
 Value cc_function_ar_slice(int arg_count, Value* args) {
     if(arg_count < 2 || !IS_USERARRAY(args[0]) || !IS_NUMBER(args[1])) {
         return NIL_VAL;
@@ -428,6 +426,245 @@ Value cc_function_ar_slice(int arg_count, Value* args) {
 
 
 Value cc_function_ar_splice(int arg_count, Value* args) {}
+
+
+static int8_t sort_value_pair(Value example, Value specimen) {
+    // Let's get the easy case out of the way first.
+    if(valuesEqual(example, specimen)) {
+        return 0;
+    }
+    // This sorting operation works by comparing an example Value against a
+    // different specimen Value.  We will return 1 if the specimen should be
+    // sorted higher than the example.  We will return -1 if the specimen
+    // should be sorted lower than the example.  We will return 0 if the order
+    // of the specimen should not be changed compared to the example.
+    // This code only runs if the example and the specimen are *not* equal.
+    if(example.type == specimen.type) {
+        switch(example.type) {
+            case VAL_BOOL:
+                // We are both booleans, but our values are not equal.
+                // If this specimen is true, I must be false, so the specimen
+                // gets sorted higher than me.  If this specimen is false, I
+                // must be true, so the specimen gets sorted lower than me.
+                return AS_BOOL(specimen) ? 1 : -1;
+            case VAL_NUMBER: {
+                // The C spec says isnan returns a "non-zero" value for true.
+                // Why the hell didn't they put simple bools in from the beinning!?
+                if(isnan(AS_NUMBER(example)) != 0) {
+                    // I'm NaN.  I get sorted below anything that isn't myself,
+                    // with one exception: other NaNs.  Our specimen will always
+                    // be sorted higher than us, unless it's also a NaN.
+                    return isnan(AS_NUMBER(specimen)) != 0 ? 0 : 1;
+                }
+                if(isnan(AS_NUMBER(specimen)) != 0) {
+                    // Likewise, if I am not NaN and the specimen is, it gets
+                    // sorted lower than me.
+                    return -1;
+                }
+                // Other, normal values get compared as the numbers that they are.
+                if(AS_NUMBER(specimen) > AS_NUMBER(example)) {
+                    return 1;
+                } else if(AS_NUMBER(specimen) < AS_NUMBER(example)) {
+                    return -1;
+                }
+                // This should not be reachable after the valuesEqual() call.
+                printf("** ERROR** sort_value_pair: Number to number equality (UNREACHABLE)");
+                return 0;
+            }
+            case VAL_OBJ: {
+                if(AS_OBJ(example)->type == AS_OBJ(specimen)->type) {
+                    // We are both Objs of the same type.  It is possible that
+                    // we might be equal.  The valuesEqual() check above operates
+                    // on the Obj reference data, not our internal values.
+                    switch(AS_OBJ(example)->type) {
+                        case OBJ_USERHASH: {
+                            // We are both hashes.  For sorting purposes, we will
+                            // compare our key counts.  If I have more keys than
+                            // the given specimen, it is sorted lower than me,
+                            // etc etc.
+                            int example_count = AS_USERHASH(example)->table.count;
+                            int specimen_count = AS_USERHASH(specimen)->table.count;
+                            if(specimen_count > example_count) {
+                                return 1;
+                            } else if(example_count > specimen_count) {
+                                return -1;
+                            }
+                            return 0;
+                        }
+                        case OBJ_USERARRAY: {
+                            // Like user hashes, arrays are sorted by key count.
+                            int example_count = AS_USERARRAY(example)->inner.count;
+                            int specimen_count = AS_USERARRAY(specimen)->inner.count;
+                            if(specimen_count > example_count) {
+                                return 1;
+                            } else if(example_count > specimen_count) {
+                                return -1;
+                            }
+                            return 0;
+                        }
+                        case OBJ_STRING: {
+                            // We're going to fall back to C's normal sorting
+                            // behavior for strings.  Who needs Unicode?  Pfah!
+                            // strcmp's parameter order is the opposite of ours.
+                            int asciibetical_lol = strcmp(
+                                AS_CSTRING(specimen),
+                                AS_CSTRING(example)
+                            );
+                            // strcmp returns a value that probably has some
+                            // useful computational value, but we only care if
+                            // it's positive, negative, or zero.
+                            if(asciibetical_lol > 0) {
+                                return 1;
+                            } else if(asciibetical_lol < 0) {
+                                return -1;
+                            }
+                            return 0;
+                        }
+                        // All other types are considered equal to themselves.
+                        case OBJ_FUNCTION:
+                        case OBJ_NATIVE: {
+                            return 0;
+                        }
+                        default: {
+                            printf("** ERROR** sort_value_pair: Objs type equal fallthrough (UNREACHABLE)");
+                            return 0;
+                        }
+                    }
+                }
+                // We are both Objs, but we are of different types.  There is no
+                // sane mechanism for value comparison between Obj types.
+                // Instead of bailing out, we'll compare our Obj types themselves.
+                // The sorting order for Obj types is as follows, from low:
+                // Others < Natives < Functions < Hashes < Arrays < Strings
+                switch(AS_OBJ(example)->type) {
+                    case OBJ_STRING:
+                        // I am a string.  Everything else is below me.
+                        return -1;
+                    case OBJ_USERARRAY: {
+                        if(AS_OBJ(specimen)->type == OBJ_STRING) {
+                            return 1;
+                        }
+                        return -1;
+                    }
+                    case OBJ_USERHASH: {
+                        switch(AS_OBJ(specimen)->type) {
+                            case OBJ_STRING:
+                            case OBJ_USERARRAY:
+                                return 1;
+                            default:
+                                return -1;
+                        }
+                    }
+                    case OBJ_FUNCTION: {
+                        switch(AS_OBJ(specimen)->type) {
+                            case OBJ_STRING:
+                            case OBJ_USERARRAY:
+                            case OBJ_USERHASH:
+                                return 1;
+                            default:
+                                return -1;
+                        }
+                    }
+                    case OBJ_NATIVE:
+                        // I'm a native, but the specimen is not.  It always gets
+                        // sorted higher than me.  Gettin' all colonial here.
+                        return 1;
+                    default: {
+                        printf("** ERROR** sort_value_pair: Objs type diff fallthrough (UNREACHABLE)");
+                        return 0;
+                    }
+                }
+            }
+            default: {
+                printf("** ERROR** sort_value_pair: Values type equal fallthrough (UNREACHABLE)");
+                return 0;
+            }
+        }
+    }
+    // Our types are not equal.  We will compare ourself with the specimen based
+    // on our types in the following order: NaN, nil, bool, non-NaN numbers,
+    // then Objs.
+    if(IS_NUMBER(specimen) && isnan(AS_NUMBER(specimen)) != 0) {
+        // The specimen is NaN, so it should always get sorted lower than me.
+        // We know this because this code won't run if I'm also a number.
+        return -1;
+    }
+    switch(example.type) {
+        case VAL_NIL: {
+            // I am nil, and the specimen is neither nil nor NaN. It gets sorted
+            // higher than us.
+            return 1;
+        }
+        case VAL_BOOL: {
+            // I'm a boolean, so the specimen will be sorted higher than me
+            // unless it's a nil.  The specimen can not be NaN.
+            return IS_NIL(specimen) ? -1 : 1;
+        }
+        case VAL_NUMBER: {
+            if(isnan(AS_NUMBER(example)) != 0) {
+                // Oh no, I'm NaN!  The specimen can't be NaN at this point.
+                return 1;
+            }
+            // I'm a non-NaN number.  Only Objs are sorted higher than us.
+            return IS_OBJ(specimen) ? 1 : -1;
+        }
+        case VAL_OBJ: {
+            // I'm an Obj, and the specimen is not.  It is sorted below me.
+            return -1;
+        }
+        default: {
+            printf("** ERROR** sort_value_pair: Values type diff fallthrough (UNREACHABLE)");
+            return 0;
+        }
+    }
+    printf("** ERROR** sort_value_pair: Complete fallthrough! (UNREACHABLE)");
+    return 0;
+}
+
+void sort_bruteforce(int count, Value* values) {
+    bool is_sorted = false;
+    int rounds = 0;
+    int swap_count = 0;
+    while(is_sorted == false) {
+        is_sorted = true;
+        for(int i = 0; i < count - 1; i++) {
+            int j = i + 1;
+            Value left = values[i];
+            Value right = values[j];
+            if(sort_value_pair(left, right) == -1) {
+                // The comparison routine says that the right Value is sorted
+                // less than the left Value.  Swap them.
+                swap_count++;
+                is_sorted = false;
+                values[i] = right;
+                values[j] = left;
+            }
+        }
+        // printf("** sort_bruteforce round %d: %d swaps\n", rounds++, swap_count);
+        swap_count = 0;
+    }
+}
+
+
+Value cc_function_ar_sort(int arg_count, Value* args) {
+    if(arg_count != 1 || !IS_USERARRAY(args[0])) {
+        return NIL_VAL;
+    }
+
+    ObjUserArray* ua = AS_USERARRAY(args[0]);
+    ObjUserArray* target_array = newUserArray();
+    ua_grow(target_array, ua->inner.count);
+
+    for(int i = 0; i < ua->inner.count; i++) {
+        target_array->inner.values[i] = ua->inner.values[i];
+        target_array->inner.count++;
+    }
+
+    sort_bruteforce(target_array->inner.count, target_array->inner.values);
+
+    return OBJ_VAL(target_array);
+}
+
 
 void cc_register_ext_userarray() {
 
