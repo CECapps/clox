@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <math.h>
 
 #include "../memory.h"
 #include "../object.h"
@@ -285,7 +286,57 @@ Value cc_function_ar_contains(int arg_count, Value* args) {
 }
 
 
-Value cc_function_ar_chunk(int arg_count, Value* args) {}
+Value cc_function_ar_chunk(int arg_count, Value* args) {
+    if(arg_count < 2 || !IS_USERARRAY(args[0]) || !IS_NUMBER(args[1])) {
+        return NIL_VAL;
+    }
+    ObjUserArray* ua = AS_USERARRAY(args[0]);
+
+    int16_t chunk_size = (int16_t)AS_NUMBER(args[1]);
+    if(chunk_size < 1) {
+        return NIL_VAL;
+    }
+
+    // Our task is to break our current array into a set of arrays no more than
+    // chunk_size long.  We'll start by creating a new User Array with enough
+    // capacity to hold all of the child arrays.
+    ObjUserArray* result_array = newUserArray();
+    ua_grow(result_array, (int16_t)ceil( (double)ua->inner.count / (double)chunk_size ));
+
+    int chunk_counter = 0;
+    int result_index = 0;
+    result_array->inner.values[result_index] = OBJ_VAL(newUserArray());
+    result_array->inner.count = 1;
+    for(int i = 0; i < ua->inner.count; i++) {
+        // Each chunk is always a maximum size, so we can adjust it immediately.
+        ObjUserArray* target_array = AS_USERARRAY(result_array->inner.values[result_index]);
+        if(target_array->inner.capacity < chunk_size) {
+            ua_grow(target_array, chunk_size);
+        }
+
+        target_array->inner.values[chunk_counter] = ua->inner.values[i];
+        target_array->inner.count++;
+
+        chunk_counter++;
+        if(chunk_counter == chunk_size) {
+            result_index++;
+            result_array->inner.values[result_index] = OBJ_VAL(newUserArray());
+            result_array->inner.count++;
+            chunk_counter = 0;
+        }
+    }
+    // We might end up with one too many arrays.  Make sure the last isn't empty.
+    ObjUserArray* last_subarray = AS_USERARRAY(
+        result_array->inner.values[ result_array->inner.count - 1 ]
+    );
+    if(last_subarray->inner.count == 0) {
+        result_array->inner.count--;
+        result_array->inner.values[ result_array->inner.count ] = NIL_VAL;
+    }
+    return OBJ_VAL(result_array);
+}
+
+
 Value cc_function_ar_shuffle(int arg_count, Value* args) {}
 Value cc_function_ar_reverse(int arg_count, Value* args) {}
 Value cc_function_ar_sort(int arg_count, Value* args) {}
