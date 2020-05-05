@@ -380,7 +380,53 @@ Value cc_function_ar_reverse(int arg_count, Value* args) {
 
 
 Value cc_function_ar_sort(int arg_count, Value* args) {}
-Value cc_function_ar_slice(int arg_count, Value* args) {}
+
+
+Value cc_function_ar_slice(int arg_count, Value* args) {
+    if(arg_count < 2 || !IS_USERARRAY(args[0]) || !IS_NUMBER(args[1])) {
+        return NIL_VAL;
+    }
+
+    ObjUserArray* ua = AS_USERARRAY(args[0]);
+    int16_t target_index = ua_normalize_index(ua, AS_NUMBER(args[1]), true);
+    if(target_index < 0) {
+        return NIL_VAL;
+    }
+
+    int max_length = ua->inner.count - target_index;
+    int length = max_length;
+    if(arg_count == 3 && IS_NUMBER(args[2])) {
+        length = (int)AS_NUMBER(args[2]);
+    }
+    if(length > max_length) {
+        length = max_length;
+    }
+    // It's possible that we're going to be given a negative length.  We'll copy
+    // the behavior of string_length() here by shifting around the target index
+    // in order to get the right window below.
+    if(length < 0) {
+        length = length * -1;
+        target_index -= length;
+        if(target_index < 0) {
+            target_index += ua->inner.count;
+        }
+    }
+
+    ObjUserArray* new_ua = newUserArray();
+    ua_grow(new_ua, length);
+    for(int i = target_index; i < target_index + length && i < ua->inner.count; i++) {
+        new_ua->inner.values[ new_ua->inner.count++ ] = ua->inner.values[i];
+    }
+
+    // It's possible that we'll just have created an empty array, so let's not.
+    if(new_ua->inner.count == 0) {
+        return NIL_VAL;
+    }
+
+    return OBJ_VAL(new_ua);
+}
+
+
 Value cc_function_ar_splice(int arg_count, Value* args) {}
 
 void cc_register_ext_userarray() {
