@@ -184,25 +184,33 @@ Value cc_function_number_to_hex_string(int arg_count, Value* args) {
 
 
 static bool random_seeded = false;
-Value cc_function_number_random(int arg_count, Value* args) {
-  if(arg_count != 2 || !IS_NUMBER(args[0]) || !IS_NUMBER(args[1])) {
-    return NIL_VAL;
-  }
+double rng() {
   if(!random_seeded) {
     srand48(time(0));
     random_seeded = true;
   }
+  return drand48();
+}
+
+
+double random_int(double left, double right) {
   // We're turning a floating point value between 0 and 1 into an integer
   // between the two passed values, which we will assume are integers themselves.
   // Because we're truncating the final value, we need to bump the greater
   // number up by one to make sure that it's included in the result.  The
   // distribution of this looks pretty even based on some very basic testing.
-  double greater = 1 + fmax( AS_NUMBER(args[0]), AS_NUMBER(args[1]) );
-  double lesser = fmin( AS_NUMBER(args[0]), AS_NUMBER(args[1]) );
+  double greater = 1 + fmax(left, right);
+  double lesser = fmin(left, right);
   double range = greater - lesser;
-  double new_value = trunc( (drand48() * range) + lesser );
+  return trunc( (rng() * range) + lesser );
+}
 
-  return NUMBER_VAL( new_value );
+
+Value cc_function_number_random(int arg_count, Value* args) {
+  if(arg_count != 2 || !IS_NUMBER(args[0]) || !IS_NUMBER(args[1])) {
+    return NIL_VAL;
+  }
+  return NUMBER_VAL( random_int( AS_NUMBER(args[0]), AS_NUMBER(args[1]) ) );
 }
 
 
