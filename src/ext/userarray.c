@@ -426,6 +426,8 @@ Value cc_function_ar_slice(int arg_count, Value* args) {
 
 
 Value cc_function_ar_splice(int arg_count, Value* args) {}
+Value cc_function_ar_append(int arg_count, Value* args) {}
+Value cc_function_ar_prepend(int arg_count, Value* args) {}
 
 
 static int8_t sort_value_pair(Value example, Value specimen) {
@@ -785,8 +787,11 @@ void cc_register_ext_userarray() {
     defineNative("ar_shuffle",    cc_function_ar_shuffle);
     defineNative("ar_reverse",    cc_function_ar_reverse);
 
-    defineNative("ar_sort",       cc_function_ar_sort);
-
     defineNative("ar_slice",      cc_function_ar_slice);
     defineNative("ar_splice",     cc_function_ar_splice);
+    defineNative("ar_append",     cc_function_ar_append);
+    defineNative("ar_prepend",    cc_function_ar_prepend);
+
+    defineNative("ar_sort",       cc_function_ar_sort);
+
 }
