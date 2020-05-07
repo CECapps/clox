@@ -111,7 +111,7 @@ Value cc_function_ar_set(int arg_count, Value* args) {
 
 
 /**
- * ar_set(user_array, key, value)
+ * ar_update(user_array, key, value)
  * - returns nil on paramater error
  * - returns false if the given index is negative and out of legal range
  * - returns the previous value of the given key on success, which may be nil
@@ -321,7 +321,6 @@ Value cc_function_ar_pop(int arg_count, Value* args) {
  * ar_shift(user_array)
  * - returns nil on parameter error
  * - returns the value of the first element in the array, after it has been removed
- * -
  */
 Value cc_function_ar_shift(int arg_count, Value* args) {
     if(arg_count != 1 || !IS_USERARRAY(args[0])) {
@@ -505,10 +504,86 @@ Value cc_function_ar_reverse(int arg_count, Value* args) {
 }
 
 
-Value cc_function_ar_slice(int arg_count, Value* args) {}
+/**
+ * ar_slice(user_array, index, count?)
+ * - returns nil on parameter error
+ * - returns false if the the given index is out of bounds of the array
+ * - returns a new array copied from the existing array, starting at the passed
+ *   index.  If a count is passed, only that many elements are copied.  If no
+ *   count is passed, all remaining array elements are copied.
+ */
+Value cc_function_ar_slice(int arg_count, Value* args) {
+    if(arg_count < 2 || arg_count > 3 || !IS_USERARRAY(args[0]) || !IS_NUMBER(args[1])) {
+        return NIL_VAL;
+    }
+
+    ObjUserArray* ua = AS_USERARRAY(args[0]);
+    double raw_range = 0;
+    if(arg_count == 3 && IS_NUMBER(args[2])) {
+        raw_range = AS_NUMBER(args[2]);
+    }
+    struct UA_Legal_Range legal = ua_normalize_index_range(ua, AS_NUMBER(args[1]), raw_range);
+    if(legal.error) {
+        return BOOL_VAL(false);
+    }
+
+    ObjUserArray* new_ua = newUserArray();
+    ua_grow(new_ua, legal.range);
+    for(int i = legal.index; i < legal.index + legal.range; i++) {
+        new_ua->inner.values[ new_ua->inner.count++ ] = ua->inner.values[i];
+    }
+    return OBJ_VAL(new_ua);
+}
+
+
+/**
+ * ar_splice(user_array, index, donor_array, count?)
+ * - returns nil on parameter error
+ * - returns false if the the given index is out of bounds of the array
+ * - returns a new array with up to count elements from the donor array spliced
+ *   in at the given index.  If no count is provided, the entire donor array is
+ *   inserted.  If the count is larger than the donor array, new elements are
+ *   not created.
+ */
 Value cc_function_ar_splice(int arg_count, Value* args) {}
-Value cc_function_ar_append(int arg_count, Value* args) {}
-Value cc_function_ar_prepend(int arg_count, Value* args) {}
+
+
+/**
+ * ar_append(user_array, donor_array)
+ * - returns nil on parameter error
+ * - returns a copy of the original with the elements from donor array appended
+ */
+Value cc_function_ar_append(int arg_count, Value* args) {
+    if(arg_count != 2 || !IS_USERARRAY(args[0]) || !IS_USERARRAY(args[1])) {
+        return NIL_VAL;
+    }
+
+    Value splice_args[3];
+    splice_args[0] = args[0];
+    splice_args[1] = NUMBER_VAL( AS_USERARRAY(args[0])->inner.count );
+    splice_args[2] = args[1];
+
+    return cc_function_ar_splice(3, splice_args);
+}
+
+
+/**
+ * ar_prepend(user_array, donor_array)
+ * - returns nil on parameter error
+ * - returns a copy of the original with the elements from donor array prepended
+ */
+Value cc_function_ar_prepend(int arg_count, Value* args) {
+    if(arg_count != 2 || !IS_USERARRAY(args[0]) || !IS_USERARRAY(args[1])) {
+        return NIL_VAL;
+    }
+
+    Value splice_args[3];
+    splice_args[0] = args[0];
+    splice_args[1] = NUMBER_VAL(0);
+    splice_args[2] = args[1];
+
+    return cc_function_ar_splice(3, splice_args);
+}
 
 
 static int8_t sort_value_pair(Value example, Value specimen) {
@@ -789,13 +864,13 @@ static void quicksort_recursive(int min_index, int max_index, Value* values) {
     int gt_index = min_index;
     Value pivot = values[pivot_index];
     for(int i = min_index; i < pivot_index; i++) {
-        Value specemin = values[i];
-        if(sort_value_pair(pivot, specemin) < 1) {
-        // The specemin value is sorted lower than or equal to the pivot.  Move it
+        Value specimen = values[i];
+        if(sort_value_pair(pivot, specimen) < 1) {
+        // The specimen value is sorted lower than or equal to the pivot.  Move it
         // to the end of the lte section, which is denoted by the gt index.
         // As the lte section grows, the gt index will increment accordingly.
             values[i] = values[gt_index];
-            values[gt_index] = specemin;
+            values[gt_index] = specimen;
             gt_index++;
         }
     }
