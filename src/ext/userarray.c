@@ -23,7 +23,7 @@ static void ua_grow(ObjUserArray* ua, int new_capacity) {
 }
 
 static int16_t ua_normalize_index(ObjUserArray* ua, double target_index, bool valid_indexes_only) {
-    int64_t index = (int64_t)target_index;
+    int64_t index = (int64_t)floor(target_index);
     if(index < 0) {
         index += ua->inner.count;
     }
@@ -32,6 +32,38 @@ static int16_t ua_normalize_index(ObjUserArray* ua, double target_index, bool va
         return -1;
     }
     return (int16_t)index;
+}
+
+static int16_t ua_normalize_range(ObjUserArray* ua, uint16_t target_index, double target_range) {
+    int64_t range = (int64_t)floor(target_range);
+    if(range + target_index > ua->inner.count) {
+        // Clamp positive ranges to the end of the array.
+        range = ua->inner.count - target_index - 1;
+    } else if (range + target_index < 0) {
+        // Clamp negative ranges to the start of the array.
+        range = -1 * target_index;
+    }
+    return (int16_t)range;
+}
+
+struct UA_Legal_Range {
+    int16_t index;
+    int16_t range;
+    bool error;
+};
+
+static struct UA_Legal_Range ua_normalize_index_range(
+    ObjUserArray* ua, double target_index, double target_range
+  ) {
+      struct UA_Legal_Range legal;
+      legal.error = false;
+      legal.index = ua_normalize_index(ua, target_index, true);
+      if(legal.index < 0) {
+          legal.error = true;
+          legal.index = 0;
+      }
+      legal.range = ua_normalize_range(ua, legal.index, target_range);
+      return legal;
 }
 
 
@@ -48,6 +80,12 @@ Value cc_function_ar_create(int arg_count, Value* args) {
 }
 
 
+/**
+ * ar_set(user_array, key, value)
+ * - returns nil on parameter error
+ * - returns false if the given index is negative and out of legal range
+ * - returns true on success
+ */
 Value cc_function_ar_set(int arg_count, Value* args) {
     if(arg_count != 3 || !IS_USERARRAY(args[0]) || !IS_NUMBER(args[1])) {
         return NIL_VAL;
@@ -72,6 +110,12 @@ Value cc_function_ar_set(int arg_count, Value* args) {
 }
 
 
+/**
+ * ar_set(user_array, key, value)
+ * - returns nil on paramater error
+ * - returns false if the given index is negative and out of legal range
+ * - returns the previous value of the given key on success, which may be nil
+ */
 Value cc_function_ar_update(int arg_count, Value* args) {
     if(arg_count != 3 || !IS_USERARRAY(args[0]) || !IS_NUMBER(args[1])) {
         return NIL_VAL;
@@ -96,7 +140,12 @@ Value cc_function_ar_update(int arg_count, Value* args) {
     return old_value;
 }
 
-
+/**
+ * ar_has(user_array, key)
+ * - returns nil on paramater error
+ * - returns false if the the given index is out of bounds of the array
+ * - returns true otherwise
+ */
 Value cc_function_ar_has(int arg_count, Value* args) {
     if(arg_count != 2 || !IS_USERARRAY(args[0]) || !IS_NUMBER(args[1])) {
         return NIL_VAL;
@@ -112,6 +161,15 @@ Value cc_function_ar_has(int arg_count, Value* args) {
 }
 
 
+/**
+ * ar_get(user_array, key)
+ * - returns nil on paramater error
+ * - returns nil if the the given index is out of bounds of the array
+ *   !! Normally key-checking functions like this would instead return false.
+ *      This function returns nil instead of false to remove possible ambiguity
+ *      over the actual value being stored.  @FIXME This language needs errors!
+ * - returns the value of the given key on success, which may still be nil.
+ */
 Value cc_function_ar_get(int arg_count, Value* args) {
     if(arg_count != 2 || !IS_USERARRAY(args[0]) || !IS_NUMBER(args[1])) {
         return NIL_VAL;
@@ -126,29 +184,49 @@ Value cc_function_ar_get(int arg_count, Value* args) {
     return ua->inner.values[target_index];
 }
 
-
+/**
+ * ar_remove(user_array, key, count?)
+ * - returns nil on parameter error
+ * - returns false if the the given index is out of bounds of the array
+ * - returns the numeric count of the number of values removed from the array,
+ *   after the key and count are normalized to fit within the bounds of the array.
+ */
 Value cc_function_ar_remove(int arg_count, Value* args) {
-    if(arg_count != 2 || !IS_USERARRAY(args[0]) || !IS_NUMBER(args[1])) {
+    if(arg_count < 2 || arg_count > 4 || !IS_USERARRAY(args[0]) || !IS_NUMBER(args[1])) {
         return NIL_VAL;
     }
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
-    int count = ua->inner.count;
-    int16_t target_index = ua_normalize_index(ua, AS_NUMBER(args[1]), true);
-    if(target_index < 0) {
+    double raw_range = 0;
+    if(arg_count == 3 && IS_NUMBER(args[2])) {
+        raw_range = AS_NUMBER(args[2]);
+    }
+    struct UA_Legal_Range legal = ua_normalize_index_range(ua, AS_NUMBER(args[1]), raw_range);
+    if(legal.error) {
         return BOOL_VAL(false);
     }
 
-    for(int i = target_index; i < (count - 1); i++) {
-        int j = i + 1;
-        ua->inner.values[i] = ua->inner.values[j];
+    int starting_index = legal.index;
+    int distance = 1 + legal.range;
+    int max_index = ua->inner.count - 1 - distance;
+    // We're creating a gap, and then backfilling it with elements from the rest
+    // of the array, only we're actually skipping the gap creation.
+    for(int i = starting_index; i < max_index; i++) {
+        ua->inner.values[i] = ua->inner.values[i + distance];
     }
-    ua->inner.values[ count - 1 ] = NIL_VAL;
-    ua->inner.count--;
-    return BOOL_VAL(true);
+    // We've copied the values over, not moved them.  Clear up the old copies.
+    for(int i = ua->inner.count - 1; i >= max_index; i--) {
+        ua->inner.values[i] = NIL_VAL;
+    }
+    ua->inner.count -= distance;
+    return NUMBER_VAL(distance);
 }
 
-
+/**
+ * ar_count(user_array)
+ * - returns nil on parameter error
+ * - returns the number of entries in the array, which may be zero
+ */
 Value cc_function_ar_count(int arg_count, Value* args) {
     if(arg_count != 1 || !IS_USERARRAY(args[0])) {
         return NIL_VAL;
@@ -157,6 +235,11 @@ Value cc_function_ar_count(int arg_count, Value* args) {
 }
 
 
+/**
+ * ar_clear(user_array)
+ * - returns nil on parameter error
+ * - returns true on success
+ */
 Value cc_function_ar_clear(int arg_count, Value* args) {
     if(arg_count != 1 || !IS_USERARRAY(args[0])) {
         return NIL_VAL;
@@ -168,6 +251,11 @@ Value cc_function_ar_clear(int arg_count, Value* args) {
 }
 
 
+/**
+ * ar_push(user_array, value)
+ * - returns nil on parameter error
+ * - returns the new number of elements in the array
+ */
 Value cc_function_ar_push(int arg_count, Value* args) {
     if(arg_count != 2 || !IS_USERARRAY(args[0])) {
         return NIL_VAL;
@@ -184,13 +272,18 @@ Value cc_function_ar_push(int arg_count, Value* args) {
 }
 
 
+/**
+ * ar_unshift(user_array, value)
+ * - returns nil on parameter error
+ * - returns the new number of elements in the array
+ */
 Value cc_function_ar_unshift(int arg_count, Value* args) {
     if(arg_count != 2 || !IS_USERARRAY(args[0])) {
         return NIL_VAL;
     }
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
-    // We're moving all of the elements down by one, then setting the passed
+    // We're moving all of the elements up by one, then setting the passed
     // value as index zero.  Let's make sure we have room to grow.
     ua->inner.count++;
     if(ua->inner.count >= ua->inner.capacity) {
@@ -205,6 +298,11 @@ Value cc_function_ar_unshift(int arg_count, Value* args) {
 }
 
 
+/**
+ * ar_pop(user_array)
+ * - returns nil on parameter error
+ * - returns the value of the last element of the array, after it has been removed
+ */
 Value cc_function_ar_pop(int arg_count, Value* args) {
     if(arg_count != 1 || !IS_USERARRAY(args[0])) {
         return NIL_VAL;
@@ -219,6 +317,12 @@ Value cc_function_ar_pop(int arg_count, Value* args) {
 }
 
 
+/**
+ * ar_shift(user_array)
+ * - returns nil on parameter error
+ * - returns the value of the first element in the array, after it has been removed
+ * -
+ */
 Value cc_function_ar_shift(int arg_count, Value* args) {
     if(arg_count != 1 || !IS_USERARRAY(args[0])) {
         return NIL_VAL;
@@ -237,6 +341,11 @@ Value cc_function_ar_shift(int arg_count, Value* args) {
 }
 
 
+/**
+ * ar_clone(user_array)
+ * - returns nil on parameter error
+ * - returns a new identical copy of the original array
+ */
 Value cc_function_ar_clone(int arg_count, Value* args) {
     if(arg_count != 1 || !IS_USERARRAY(args[0])) {
         return NIL_VAL;
@@ -253,6 +362,17 @@ Value cc_function_ar_clone(int arg_count, Value* args) {
 }
 
 
+/**
+ * ar_find(user_array, value, starting_index?)
+ * - returns nil on parameter error
+ * - returns nil if the the given starting index is out of bounds of the array
+ *   !! Again, a variation here, normally this returns false, but we return
+ *      nil here to allow a distingiusihing between bad params and not finding
+ *      the desired value.
+ * - returns false if the given value is not in the array
+ * - returns the numeric index of first location of the value in the array
+ *   after the starting index, which is the start of the array unless specified.
+ */
 Value cc_function_ar_find(int arg_count, Value* args) {
     if(arg_count < 2 || arg_count > 3 || !IS_USERARRAY(args[0])) {
         return NIL_VAL;
@@ -277,18 +397,12 @@ Value cc_function_ar_find(int arg_count, Value* args) {
 }
 
 
-Value cc_function_ar_contains(int arg_count, Value* args) {
-    Value find_result = cc_function_ar_find(arg_count, args);
-    if(IS_NIL(find_result)) {
-        return NIL_VAL;
-    }
-    if(IS_NUMBER(find_result)) {
-        return BOOL_VAL(true);
-    }
-    return BOOL_VAL(false);
-}
-
-
+/**
+ * ar_chunk(user_array, chunk_size)
+ * - returns nil on parameter error
+ * - returns an array composed of arrays of chunk_size, each holding values taken
+ *   from the source array, in the original order.
+ */
 Value cc_function_ar_chunk(int arg_count, Value* args) {
     if(arg_count < 2 || !IS_USERARRAY(args[0]) || !IS_NUMBER(args[1])) {
         return NIL_VAL;
@@ -329,6 +443,7 @@ Value cc_function_ar_chunk(int arg_count, Value* args) {
         }
     }
     // We might end up with one too many arrays.  Make sure the last isn't empty.
+    // @FIXME this happening is surely a bug, where's my off-by-one error?
     ObjUserArray* last_subarray = AS_USERARRAY(
         result_array->inner.values[ result_array->inner.count - 1 ]
     );
@@ -340,6 +455,11 @@ Value cc_function_ar_chunk(int arg_count, Value* args) {
 }
 
 
+/**
+ * ar_shuffle(user_array)
+ * - returns nil on parameter error
+ * - returns a copy of the original array with the values shuffled around by RNG
+ */
 Value cc_function_ar_shuffle(int arg_count, Value* args) {
     if(arg_count != 1 || !IS_USERARRAY(args[0])) {
         return NIL_VAL;
@@ -354,8 +474,8 @@ Value cc_function_ar_shuffle(int arg_count, Value* args) {
         target_array->inner.count++;
     }
     for(int i = 0; i < target_array->inner.count; i++) {
-        Value old_value = target_array->inner.values[i];
         int swap_index = (int)random_int(0, target_array->inner.count - 1);
+        Value old_value = target_array->inner.values[i];
         target_array->inner.values[i] = target_array->inner.values[swap_index];
         target_array->inner.values[swap_index] = old_value;
     }
@@ -363,6 +483,11 @@ Value cc_function_ar_shuffle(int arg_count, Value* args) {
 }
 
 
+/**
+ * ar_reverse(user_array)
+ * - returns nil on parameter error
+ * - returns a copy of the original array with the values reversed
+ */
 Value cc_function_ar_reverse(int arg_count, Value* args) {
     if(arg_count != 1 || !IS_USERARRAY(args[0])) {
         return NIL_VAL;
@@ -380,51 +505,7 @@ Value cc_function_ar_reverse(int arg_count, Value* args) {
 }
 
 
-Value cc_function_ar_slice(int arg_count, Value* args) {
-    if(arg_count < 2 || !IS_USERARRAY(args[0]) || !IS_NUMBER(args[1])) {
-        return NIL_VAL;
-    }
-
-    ObjUserArray* ua = AS_USERARRAY(args[0]);
-    int16_t target_index = ua_normalize_index(ua, AS_NUMBER(args[1]), true);
-    if(target_index < 0) {
-        return NIL_VAL;
-    }
-
-    int max_length = ua->inner.count - target_index;
-    int length = max_length;
-    if(arg_count == 3 && IS_NUMBER(args[2])) {
-        length = (int)AS_NUMBER(args[2]);
-    }
-    if(length > max_length) {
-        length = max_length;
-    }
-    // It's possible that we're going to be given a negative length.  We'll copy
-    // the behavior of string_length() here by shifting around the target index
-    // in order to get the right window below.
-    if(length < 0) {
-        length = length * -1;
-        target_index -= length;
-        if(target_index < 0) {
-            target_index += ua->inner.count;
-        }
-    }
-
-    ObjUserArray* new_ua = newUserArray();
-    ua_grow(new_ua, length);
-    for(int i = target_index; i < target_index + length && i < ua->inner.count; i++) {
-        new_ua->inner.values[ new_ua->inner.count++ ] = ua->inner.values[i];
-    }
-
-    // It's possible that we'll just have created an empty array, so let's not.
-    if(new_ua->inner.count == 0) {
-        return NIL_VAL;
-    }
-
-    return OBJ_VAL(new_ua);
-}
-
-
+Value cc_function_ar_slice(int arg_count, Value* args) {}
 Value cc_function_ar_splice(int arg_count, Value* args) {}
 Value cc_function_ar_append(int arg_count, Value* args) {}
 Value cc_function_ar_prepend(int arg_count, Value* args) {}
@@ -781,7 +862,6 @@ void cc_register_ext_userarray() {
     defineNative("ar_clone",      cc_function_ar_clone);
 
     defineNative("ar_find",       cc_function_ar_find);
-    defineNative("ar_contains",   cc_function_ar_contains);
 
     defineNative("ar_chunk",      cc_function_ar_chunk);
     defineNative("ar_shuffle",    cc_function_ar_shuffle);
