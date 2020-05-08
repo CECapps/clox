@@ -28,7 +28,7 @@ static int16_t ua_normalize_index(ObjUserArray* ua, double target_index, bool va
         index += ua->inner.count;
     }
 
-    if(index > INT16_MAX || index < 0 || (valid_indexes_only && index > ua->inner.count)) {
+    if(index > INT16_MAX || index < 0 || (valid_indexes_only && index >= ua->inner.count)) {
         return -1;
     }
     return (int16_t)index;
@@ -398,6 +398,10 @@ Value cc_function_ar_find(int arg_count, Value* args) {
     }
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
+    if(ua->inner.count == 0) {
+        return BOOL_VAL(false);
+    }
+
     Value target_value = args[1];
     int16_t minimum_index = 0;
     if(arg_count == 3 && IS_NUMBER(args[2])) {
