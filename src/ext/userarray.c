@@ -441,7 +441,8 @@ Value cc_function_ar_chunk(int arg_count, Value* args) {
     // chunk_size long.  We'll start by creating a new User Array with enough
     // capacity to hold all of the child arrays.
     ObjUserArray* result_array = newUserArray();
-    ua_grow(result_array, (int16_t)ceil( (double)ua->inner.count / (double)chunk_size ));
+    int16_t outer_capacity = (int16_t)ceil( (double)ua->inner.count / (double)chunk_size );
+    ua_grow(result_array, outer_capacity);
 
     int chunk_counter = 0;
     int result_index = 0;
@@ -458,21 +459,12 @@ Value cc_function_ar_chunk(int arg_count, Value* args) {
         target_array->inner.count++;
 
         chunk_counter++;
-        if(chunk_counter == chunk_size) {
+        if(chunk_counter == chunk_size && i + 1 < ua->inner.count) {
             result_index++;
             result_array->inner.values[result_index] = OBJ_VAL(newUserArray());
             result_array->inner.count++;
             chunk_counter = 0;
         }
-    }
-    // We might end up with one too many arrays.  Make sure the last isn't empty.
-    // @FIXME this happening is surely a bug, where's my off-by-one error?
-    ObjUserArray* last_subarray = AS_USERARRAY(
-        result_array->inner.values[ result_array->inner.count - 1 ]
-    );
-    if(last_subarray->inner.count == 0) {
-        result_array->inner.count--;
-        result_array->inner.values[ result_array->inner.count ] = NIL_VAL;
     }
     return OBJ_VAL(result_array);
 }
