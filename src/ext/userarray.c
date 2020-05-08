@@ -36,12 +36,14 @@ static int16_t ua_normalize_index(ObjUserArray* ua, double target_index, bool va
 
 static int16_t ua_normalize_range(ObjUserArray* ua, uint16_t target_index, double target_range) {
     int64_t range = (int64_t)floor(target_range);
-    if(range + target_index > ua->inner.count) {
+    if (range + target_index < 0) {
+        // Only allow negative ranges to reach the first element in the array.
+        // That is, ranges can't go negative and loop around like an index.
+        range = target_index * -1;
+    }
+    if(range + target_index >= ua->inner.count) {
         // Clamp positive ranges to the end of the array.
-        range = ua->inner.count - target_index - 1;
-    } else if (range + target_index < 0) {
-        // Clamp negative ranges to the start of the array.
-        range = -1 * target_index;
+        range = ua->inner.count - target_index;
     }
     return (int16_t)range;
 }
@@ -63,6 +65,11 @@ static struct UA_Legal_Range ua_normalize_index_range(
           legal.index = 0;
       }
       legal.range = ua_normalize_range(ua, legal.index, target_range);
+      if(legal.range < 0 && !legal.error) {
+          legal.range = legal.range * -1;
+          legal.index -= legal.range;
+          legal.range++;
+      }
       return legal;
 }
 
@@ -185,7 +192,7 @@ Value cc_function_ar_get(int arg_count, Value* args) {
 }
 
 /**
- * ar_remove(user_array, key, count?)
+ * ar_remove(user_array, key, count? = 1)
  * - returns nil on parameter error
  * - returns false if the the given index is out of bounds of the array
  * - returns the numeric count of the number of values removed from the array,
@@ -197,7 +204,7 @@ Value cc_function_ar_remove(int arg_count, Value* args) {
     }
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
-    double raw_range = 0;
+    double raw_range = 1;
     if(arg_count == 3 && IS_NUMBER(args[2])) {
         raw_range = AS_NUMBER(args[2]);
     }
@@ -207,15 +214,20 @@ Value cc_function_ar_remove(int arg_count, Value* args) {
     }
 
     int starting_index = legal.index;
-    int distance = 1 + legal.range;
+    int distance = legal.range;
     int max_index = ua->inner.count - 1 - distance;
+
+    if(distance == 0) {
+        return BOOL_VAL(false);
+    }
+
     // We're creating a gap, and then backfilling it with elements from the rest
     // of the array, only we're actually skipping the gap creation.
-    for(int i = starting_index; i < max_index; i++) {
+    for(int i = starting_index; i <= max_index; i++) {
         ua->inner.values[i] = ua->inner.values[i + distance];
     }
     // We've copied the values over, not moved them.  Clear up the old copies.
-    for(int i = ua->inner.count - 1; i >= max_index; i--) {
+    for(int i = ua->inner.count - 1; i > max_index; i--) {
         ua->inner.values[i] = NIL_VAL;
     }
     ua->inner.count -= distance;
