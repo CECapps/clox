@@ -538,6 +538,9 @@ Value cc_function_ar_slice(int arg_count, Value* args) {
     if(arg_count == 3 && IS_NUMBER(args[2])) {
         raw_range = AS_NUMBER(args[2]);
     }
+    if(raw_range == 0) {
+        raw_range = ua->inner.count;
+    }
     struct UA_Legal_Range legal = ua_normalize_index_range(ua, AS_NUMBER(args[1]), raw_range);
     if(legal.error) {
         return BOOL_VAL(false);
