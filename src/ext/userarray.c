@@ -577,12 +577,17 @@ Value cc_function_ar_append(int arg_count, Value* args) {
         return NIL_VAL;
     }
 
-    Value splice_args[3];
-    splice_args[0] = args[0];
-    splice_args[1] = NUMBER_VAL( AS_USERARRAY(args[0])->inner.count );
-    splice_args[2] = args[1];
-
-    return cc_function_ar_splice(3, splice_args);
+    ObjUserArray* left = AS_USERARRAY(args[0]);
+    ObjUserArray* right = AS_USERARRAY(args[1]);
+    ObjUserArray* new_ua = newUserArray();
+    ua_grow(new_ua, left->inner.count + right->inner.count);
+    for(int i = 0; i < left->inner.count; i++) {
+        new_ua->inner.values[ new_ua->inner.count++ ] = left->inner.values[i];
+    }
+    for(int i = 0; i < right->inner.count; i++) {
+        new_ua->inner.values[ new_ua->inner.count++ ] = right->inner.values[i];
+    }
+    return OBJ_VAL(new_ua);
 }
 
 
@@ -596,12 +601,16 @@ Value cc_function_ar_prepend(int arg_count, Value* args) {
         return NIL_VAL;
     }
 
-    Value splice_args[3];
-    splice_args[0] = args[0];
-    splice_args[1] = NUMBER_VAL(0);
-    splice_args[2] = args[1];
-
-    return cc_function_ar_splice(3, splice_args);
+    // lol
+    Value swap = args[0];
+    args[0] = args[1];
+    args[1] = swap;
+    Value res = cc_function_ar_append(arg_count, args);
+    // So these are pointers to things that are on the stack.  Undo our damage.
+    swap = args[0];
+    args[0] = args[1];
+    args[1] = swap;
+    return res;
 }
 
 
