@@ -322,6 +322,10 @@ Value cc_function_ar_pop(int arg_count, Value* args) {
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
 
+    if(ua->inner.count == 0) {
+        return NIL_VAL;
+    }
+
     Value old_value = ua->inner.values[ua->inner.count - 1];
     ua->inner.values[ua->inner.count - 1] = NIL_VAL;
     ua->inner.count--;
@@ -340,6 +344,10 @@ Value cc_function_ar_shift(int arg_count, Value* args) {
     }
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
+
+    if(ua->inner.count == 0) {
+        return NIL_VAL;
+    }
 
     Value old_value = ua->inner.values[0];
     for(int i = 1; i < ua->inner.count; i++) {
