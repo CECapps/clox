@@ -10,7 +10,7 @@
 #include "number.h"
 
 
-static void ua_grow(ObjUserArray* ua, int new_capacity) {
+void ua_grow(ObjUserArray* ua, int new_capacity) {
     int old_capacity = ua->inner.capacity;
     while(ua->inner.capacity < new_capacity) {
         ua->inner.capacity = GROW_CAPACITY(ua->inner.capacity);

@@ -6,6 +6,8 @@
 #include "../memory.h"
 #include "../vm.h"
 
+#include "userarray.h";
+
 static int16_t st_normalize_index(ObjString* str, double raw_index) {
   // ObjString's length is held in an int, which is apparently 16 bits?
   if(raw_index > INT16_MAX || raw_index < INT16_MIN) {
@@ -229,10 +231,52 @@ Value cc_function_string_right_index_of(int arg_count, Value* args) {
 }
 
 
+/**
+ * string_split(source_string, delimiter_string)
+ * - returns nil on parameter error
+ * - returns an array composed of the source string broken up by the delimiter.
+ */
+Value cc_function_string_split(int arg_count, Value* args) {
+  if(arg_count != 2 || !IS_STRING(args[0]) || !IS_STRING(args[1])) {
+    return NIL_VAL;
+  }
+
+  ObjString* haystack = AS_STRING(args[0]);
+  ObjString* needle = AS_STRING(args[1]);
+  ObjUserArray* container = newUserArray();
+
+  int16_t starting_index = 0;
+  while(starting_index < haystack->length) {
+    int16_t start_of_next_delimiter = starting_index;
+
+    Value res = str_indexof_core(haystack, needle, starting_index);
+    if(IS_BOOL(res) && AS_BOOL(res) == false) {
+      // The substring was not found.  Take the rest of the string.
+      start_of_next_delimiter = haystack->length;
+    } else if(IS_NUMBER(res)) {
+      start_of_next_delimiter = (int16_t)AS_NUMBER(res);
+    }
+
+    int16_t new_string_length = start_of_next_delimiter - starting_index;
+    char* new_string = ALLOCATE(char, new_string_length + 1);
+    // Yes, memcpy() takes the destination before the source.
+    memcpy(new_string, &haystack->chars[starting_index], new_string_length);
+    new_string[new_string_length] = '\0';
+
+    ua_grow(container, container->inner.count + 1);
+    container->inner.values[ container->inner.count++ ] = OBJ_VAL(takeString(new_string, new_string_length));
+
+    starting_index += new_string_length + needle->length;
+  }
+  return OBJ_VAL(container);
+}
+
+
 void cc_register_ext_string() {
   defineNative("string_length",         cc_function_string_length);
   defineNative("string_substring",      cc_function_string_substring);
   defineNative("string_index_of",       cc_function_string_index_of);
   defineNative("string_right_index_of", cc_function_string_right_index_of);
+  defineNative("string_split",          cc_function_string_split);
 }
 
