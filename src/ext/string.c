@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <regex.h>
 
 #include "../common.h"
 #include "../memory.h"
@@ -290,11 +291,42 @@ Value cc_function_string_split(int arg_count, Value* args) {
 }
 
 
+Value cc_function_string_regex_matches(int arg_count, Value* args) {
+  if(arg_count != 2 || !IS_STRING(args[0]) || !IS_STRING(args[1])) {
+    return NIL_VAL;
+  }
+
+  regex_t regex_handle;
+  int compile_success = regcomp(
+    &regex_handle,
+    AS_CSTRING(args[1]),
+    REG_EXTENDED | REG_NOSUB // Use POSIX extended regexes, and don't capture
+  );
+  if(compile_success != 0) {
+    // @FIXME report errors
+    return NIL_VAL;
+  }
+
+  int matched = regexec(
+    &regex_handle,
+    AS_CSTRING(args[0]),
+    0,    // Expected number of matches, ignored per REG_NOSUB
+    NULL, // Structure to contain matches, ignored per REG_NOSUB
+    0     // Flags, of which we care about none.
+  );
+  regfree(&regex_handle);
+
+  // This'll be zero on success, and non-zero on failure or error.  We don't care
+  // about errors right now (@FIXME), so matched / didn't match is good enough.
+  return BOOL_VAL(matched == 0);
+}
+
+
 void cc_register_ext_string() {
   defineNative("string_length",         cc_function_string_length);
   defineNative("string_substring",      cc_function_string_substring);
   defineNative("string_index_of",       cc_function_string_index_of);
   defineNative("string_right_index_of", cc_function_string_right_index_of);
   defineNative("string_split",          cc_function_string_split);
+  defineNative("string_regex_matches",  cc_function_string_regex_matches);
 }
-
