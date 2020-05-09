@@ -4,73 +4,118 @@
 #include "../memory.h"
 #include "../vm.h"
 
+static int16_t st_normalize_index(ObjString* str, double raw_index) {
+  // ObjString's length is held in an int, which is apparently 16 bits?
+  if(raw_index > INT16_MAX || raw_index < INT16_MIN) {
+    return -1;
+  }
+  int16_t target_index = (int16_t)raw_index;
+  // Given a string length of 8 and a starting index of -5,
+  // (-5) + 8 = 3
+  // [0]  [1]  [2]  [3]  [4]  [5]  [6]  [7]
+  // -8   -7   -6   -5   -4   -3   -2   -1
+  if(target_index < 0) {
+    target_index += str->length;
+  }
+  // Most of the time we should be inside the string.
+  if(target_index >= 0 && target_index < str->length) {
+    return target_index;
+  }
+  // The target index will always be positive, so returning -1 will always raise
+  // an error, not refer to index -1.
+  return -1;
+}
 
+
+static int16_t st_normalize_range(ObjString* str, int16_t index, double raw_range) {
+  if(raw_range > INT16_MAX || raw_range < INT16_MIN) {
+    // @FIXME This is an error, but there's no way of reporting it.  Returning a
+    // range of zero is going to have to do for now.
+    return 0;
+  }
+  int16_t range = (int16_t)raw_range;
+  // Given a string length of 8 and a starting index of 3, the maximum positive
+  // range is 5, and the maximum negative range is -4.
+  // Yes, range includes the index.
+  int16_t span = index + range;
+  if(span > str->length) {
+    // The range is too high.  Clamp it to the end of the string.
+    range = str->length - index;
+  } else if(span < 0) {
+    // The negative range would wrap if it could, but it can't.  Clamp it to the
+    // start of the string instead.
+    range = index * -1;
+  }
+  return range;
+}
+
+
+struct ST_Legal_Range {
+    int16_t index;
+    int16_t range;
+    bool error;
+};
+
+static struct ST_Legal_Range st_normalize_index_range(
+  ObjString* str, double raw_index, double raw_range
+) {
+  struct ST_Legal_Range res;
+  res.error = false;
+
+  res.index = st_normalize_index(str, raw_index);
+  if(res.index == -1) {
+    res.error = true;
+    res.index = 0;
+  }
+  // We could get back a negative range, but we always want the range to be
+  // positive.  Invert the range and then move the index left.  This will cover
+  // the same span.
+  res.range = st_normalize_range(str, res.index, raw_range);
+  if(res.range < 0 && !res.error) {
+    res.range *= -1;
+    res.index -= res.range;
+  }
+  return res;
+}
+
+
+/**
+ * string_substring(string, index, count?)
+ * - returns nil on parameter error
+ * - returns false if the given index out of legal range
+ * - returns a copy of the given string starting at the given index for up to
+ *   count characters.  If count is omitted, then the entire remaining string
+ *   is returned instead.  Both the count and index may be negative, but both
+ *   must be inside the legal range.
+ */
 Value cc_function_string_substring(int arg_count, Value* args) {
-  if(arg_count < 1) {
-    // Must at least have the string passed through.
+  if(arg_count < 2 || arg_count > 3 || !IS_STRING(args[0]) || !IS_NUMBER(args[1]))  {
+    return NIL_VAL;
+  }
+
+  ObjString* str = AS_STRING(args[0]);
+
+  double raw_range = 0;
+  if(arg_count == 3 && IS_NUMBER(args[2])) {
+    raw_range = AS_NUMBER(args[2]);
+  }
+  struct ST_Legal_Range legal = st_normalize_index_range(str, AS_NUMBER(args[1]), raw_range);
+  if(legal.error) {
     return BOOL_VAL(false);
   }
-  if(!IS_STRING(args[0])) {
-    // Must at least have *a* string passed through.
-    return BOOL_VAL(false);;
-  }
-  ObjString *source_string = AS_STRING(args[0]);
-
-  int starting_index = 0;
-  if(arg_count >= 2 && IS_NUMBER(args[1])) {
-    starting_index = (int)AS_NUMBER(args[1]);
-    if(abs(starting_index) > source_string->length) {
-      // We accept both positive and negative indexes.  If either of them is
-      // out of range for the string, we'll assume it's bogus and fail.
-      return BOOL_VAL(false);
-    }
-
-    if(starting_index < 0) {
-      // Given a string length of 8 and a starting index of -5,
-      // 8 + (-5) = 3
-      // [0]  [1]  [2]  [3]  [4]  [5]  [6]  [7]
-      //      -7   -6   -5   -4   -3   -2   -1
-      starting_index = source_string->length + starting_index;
-    }
+  // Zero range is both our default and the error state, but that's fine.
+  // When it's zero, we're just going to take the remainder of the string.
+  int16_t count = legal.range;
+  if(count == 0) {
+    count = str->length - legal.index;
   }
 
-  // Given a string length of 8 and a starting index of 3,
-  // (8 - 1) - 3 => 7 - 3 => 4 would be the maximum number of chars we can pull from the right.
-  // Likewise, the index value is the maximum number of chars we can pull from the left.
-  int max_substring_length_right = source_string->length - starting_index;
-  int max_substring_length_left = starting_index;
-  int substring_length = max_substring_length_right;
-  if(arg_count == 3 && IS_NUMBER(args[2])) {
-    substring_length = (int)AS_NUMBER(args[2]);
-
-    if(substring_length > max_substring_length_right) {
-      // Can't pull more than the string length.
-      return BOOL_VAL(false);
-    }
-
-    if(substring_length < 0) {
-      substring_length = abs(substring_length);
-      if(substring_length > max_substring_length_left) {
-        // Likewise, we can't pull more than the string length from the left.
-        return BOOL_VAL(false);
-      }
-      // This is pretty silly but I'm doing it anyway.
-      starting_index -= substring_length;
-    }
+  char* new_chars = ALLOCATE(char, count);
+  for(int i = 0; i < count; i++) {
+    new_chars[i] = str->chars[i + legal.index];
   }
-
-  // Could probably do this using memcpy as in concatenate(), but doing manual
-  // memory management freaks me out.  I'm sure this is slower, but I'd much
-  // rather be explicit and paranoid.
-  char* new_string = ALLOCATE(char, substring_length + 1);
-  int new_index = 0;
-  for(int i = starting_index; i < (starting_index + substring_length); i++) {
-    new_string[new_index] = source_string->chars[i];
-    new_index++;
-  }
-  new_string[new_index] = '\0';
-
-  return OBJ_VAL(takeString(new_string, new_index));
+  new_chars[count] = '\0';
+  return OBJ_VAL(takeString(new_chars, count));
 }
 
 
