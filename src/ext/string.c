@@ -232,12 +232,25 @@ Value cc_function_string_right_index_of(int arg_count, Value* args) {
 
 
 /**
- * string_split(source_string, delimiter_string)
+ * string_split(source_string, delimiter_string, limit?)
  * - returns nil on parameter error
  * - returns an array composed of the source string broken up by the delimiter.
+ *   If a limit is passed, the string will only be split limit times.  The last
+ *   element of the array will contain the remainder of the string, including
+ *   any remaining delimiters.  Limit must be > 0.
  */
 Value cc_function_string_split(int arg_count, Value* args) {
-  if(arg_count != 2 || !IS_STRING(args[0]) || !IS_STRING(args[1])) {
+  if(arg_count < 2 || !IS_STRING(args[0]) || !IS_STRING(args[1])) {
+    return NIL_VAL;
+  }
+
+  bool has_limit = false;
+  int16_t limit = 1;
+  if(arg_count == 3 && IS_NUMBER(args[2])) {
+    has_limit = true;
+    limit = (int16_t)AS_NUMBER(args[2]);
+  }
+  if(limit < 1) {
     return NIL_VAL;
   }
 
@@ -255,6 +268,11 @@ Value cc_function_string_split(int arg_count, Value* args) {
       start_of_next_delimiter = haystack->length;
     } else if(IS_NUMBER(res)) {
       start_of_next_delimiter = (int16_t)AS_NUMBER(res);
+    }
+
+    if(has_limit && container->inner.count == limit) {
+      // We've hit our array capacity limit, take the rest of the string.
+      start_of_next_delimiter = haystack->length;
     }
 
     int16_t new_string_length = start_of_next_delimiter - starting_index;
