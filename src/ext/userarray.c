@@ -1142,6 +1142,37 @@ Value cc_function_ar_filter(int arg_count, Value* args) {
 }
 
 
+/**
+ * ar_map(array, callback)
+ * - returns nil on parameter error
+ * - returns a copy of the array with each elemnt processed by the provided callback
+ *
+ * => callback(value, index)
+ * - returns the new value that should be placed at the offset
+ */
+Value cc_function_ar_map(int arg_count, Value* args) {
+    if(arg_count != 2 || !IS_USERARRAY(args[0]) || !IS_FUNCTION(args[1])) {
+        return NIL_VAL;
+    }
+
+    ObjUserArray* ua = AS_USERARRAY(args[0]);
+    ObjFunction* callback = AS_FUNCTION(args[1]);
+
+    ObjUserArray* new_ua = newUserArray();
+    ua_grow(new_ua, ua->inner.count);
+
+    for(int i = 0; i < ua->inner.count; i++) {
+        Value callback_args[2] = {
+            ua->inner.values[i],
+            NUMBER_VAL(i)
+        };
+        Value res = callCallback(OBJ_VAL(callback), 2, callback_args);
+        new_ua->inner.values[ new_ua->inner.count++ ] = res;
+    }
+    return OBJ_VAL(new_ua);
+}
+
+
 void cc_register_ext_userarray() {
 
     defineNative("val_is_userarray" ,cc_function_val_is_userarray);
@@ -1180,5 +1211,6 @@ void cc_register_ext_userarray() {
     defineNative("ar_join",       cc_function_ar_join);
 
     defineNative("ar_filter",     cc_function_ar_filter);
+    defineNative("ar_map",        cc_function_ar_map);
 
 }
