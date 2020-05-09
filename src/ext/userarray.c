@@ -969,6 +969,11 @@ static void sort_quicksort(int count, Value* values) {
 }
 
 
+/**
+ * ar_sort(array)
+ * - returns nil on parameter error
+ * - returns a copy of the original array with the elements sorted
+ */
 Value cc_function_ar_sort(int arg_count, Value* args) {
     if(arg_count != 1 || !IS_USERARRAY(args[0])) {
         return NIL_VAL;
@@ -986,6 +991,61 @@ Value cc_function_ar_sort(int arg_count, Value* args) {
     sort_quicksort(target_array->inner.count, target_array->inner.values);
 
     return OBJ_VAL(target_array);
+}
+
+
+/**
+ * ar_join(array, glue_string)
+ * - returns nil on parameter error
+ * - returns false if a non-string, non-nil element is in the array
+ *   @FIXME ugh, need a way to force-stringify things
+ * - returns a string of all array elements joined together with the glue string
+ */
+Value cc_function_ar_join(int arg_count, Value* args) {
+    if(arg_count != 2 || !IS_USERARRAY(args[0])|| !IS_STRING(args[1])) {
+        return NIL_VAL;
+    }
+
+    ObjUserArray* ua = AS_USERARRAY(args[0]);
+    ObjString* glue = AS_STRING(args[1]);
+
+    int new_string_length = (ua->inner.count - 1) * glue->length;
+    if(new_string_length < 0) {
+        // We can end up negative if the array is empty.  Let's not.
+        new_string_length = 0;
+    }
+    for(int i = 0; i < ua->inner.count; i++) {
+        // We can only join together things that are strings, but we'll be nice
+        // and skip nils.  If there's anything we can process, bail now.
+        if(!IS_NIL(ua->inner.values[i]) && !IS_STRING(ua->inner.values[i])) {
+            return BOOL_VAL(false);
+        }
+        if(IS_NIL(ua->inner.values[i])) {
+            continue;
+        }
+        new_string_length += AS_STRING(ua->inner.values[i])->length;
+    }
+
+    char* new_string = ALLOCATE(char, new_string_length + 1);
+    int new_string_index = 0;
+    for(int i = 0; i < ua->inner.count; i++) {
+        // If we're here, we know that all elements in the array are either
+        // strings or nil.  Nil becomes the empty string, so we can ignore it.
+        if(IS_STRING(ua->inner.values[i])) {
+            ObjString* str = AS_STRING(ua->inner.values[i]);
+            // dest, src, length
+            memcpy(&new_string[new_string_index], str->chars, str->length);
+            new_string_index += str->length;
+        }
+        // Don't put glue after the final element in the array
+        if(i != ua->inner.count - 1) {
+            memcpy(&new_string[new_string_index], glue->chars, glue->length);
+            new_string_index += glue->length;
+        }
+    }
+    new_string[new_string_length] = '\0';
+
+    return OBJ_VAL(takeString(new_string, new_string_length));
 }
 
 
@@ -1022,5 +1082,7 @@ void cc_register_ext_userarray() {
     defineNative("ar_prepend",    cc_function_ar_prepend);
 
     defineNative("ar_sort",       cc_function_ar_sort);
+
+    defineNative("ar_join",       cc_function_ar_join);
 
 }
