@@ -1,4 +1,6 @@
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "../common.h"
 #include "../memory.h"
@@ -80,6 +82,19 @@ static struct ST_Legal_Range st_normalize_index_range(
 
 
 /**
+ * string_length(string)
+ * - returns nil on parameter error
+ * - returns the number of characters in the given string
+ */
+Value cc_function_string_length(int arg_count, Value* args) {
+  if(!IS_STRING(args[0])) {
+    return NIL_VAL;
+  }
+  return NUMBER_VAL( AS_STRING(args[0])->length );
+}
+
+
+/**
  * string_substring(string, index, count?)
  * - returns nil on parameter error
  * - returns false if the given index out of legal range
@@ -119,16 +134,51 @@ Value cc_function_string_substring(int arg_count, Value* args) {
 }
 
 
-Value cc_function_string_length(int arg_count, Value* args) {
-  if(!IS_STRING(args[0])) {
+/**
+ * string_index_of(haystack_string, needle_string, starting_index?)
+ * - returns nil on parameter error
+ * - returns false if the given index out of legal range
+ * - returns the index at which the substring needle_string is found in the
+ *   given haystack_string, optionally starting the search at the given index.
+ *   Returns false if the substring could not be located.
+ */
+Value cc_function_string_index_of(int arg_count, Value* args) {
+  if(arg_count < 2 || arg_count > 3 || !IS_STRING(args[0]) || !IS_STRING(args[1])
+     || (arg_count == 3 && !IS_NUMBER(args[2]))
+  ) {
+    return NIL_VAL;
+  }
+
+  ObjString* haystack = AS_STRING(args[0]);
+  ObjString* needle = AS_STRING(args[1]);
+  if(needle->length < 1 || needle->length > haystack->length) {
     return BOOL_VAL(false);
   }
-  return NUMBER_VAL( AS_STRING(args[0])->length );
+
+  int16_t starting_index = 0;
+  if(arg_count == 3) {
+    starting_index = st_normalize_index(haystack, AS_NUMBER(args[2]));
+  }
+  if(starting_index < 0) {
+    return BOOL_VAL(false);
+  }
+
+  int16_t maximum_index = haystack->length - needle->length;
+  for(int index = starting_index; index <= maximum_index; index++) {
+    if(haystack->chars[index] == needle->chars[0]) {
+      // Yes, memcmp() returns 0 when left and right are identical.
+      if(memcmp(&haystack->chars[index], needle->chars, needle->length) == 0) {
+        return NUMBER_VAL(index);
+      }
+    }
+  }
+  return BOOL_VAL(false);
 }
 
 
 void cc_register_ext_string() {
-  defineNative("string_substring", cc_function_string_substring);
   defineNative("string_length",    cc_function_string_length);
+  defineNative("string_substring", cc_function_string_substring);
+  defineNative("string_index_of",  cc_function_string_index_of);
 }
 
