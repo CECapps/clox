@@ -1173,6 +1173,36 @@ Value cc_function_ar_map(int arg_count, Value* args) {
 }
 
 
+/**
+ * ar_reduce(array, callback)
+ * - returns nil on parameter error
+ * - returns a single value, the last returned by the callback
+ *
+ * => callback(accumulator, value, index)
+ * - return value is passed as the accumulator to the next callback, or back to
+ *   the user if this is the last index.
+ */
+Value cc_function_ar_reduce(int arg_count, Value* args) {
+    if(arg_count != 2 || !IS_USERARRAY(args[0]) || !IS_FUNCTION(args[1])) {
+        return NIL_VAL;
+    }
+
+    ObjUserArray* ua = AS_USERARRAY(args[0]);
+    ObjFunction* callback = AS_FUNCTION(args[1]);
+
+    Value accumulator = NIL_VAL;
+    for(int i = 0; i < ua->inner.count; i++) {
+        Value callback_args[3] = {
+            accumulator,
+            ua->inner.values[i],
+            NUMBER_VAL(i)
+        };
+        accumulator = callCallback(OBJ_VAL(callback), 3, callback_args);
+    }
+    return accumulator;
+}
+
+
 void cc_register_ext_userarray() {
 
     defineNative("val_is_userarray" ,cc_function_val_is_userarray);
@@ -1212,5 +1242,6 @@ void cc_register_ext_userarray() {
 
     defineNative("ar_filter",     cc_function_ar_filter);
     defineNative("ar_map",        cc_function_ar_map);
+    defineNative("ar_reduce",     cc_function_ar_reduce);
 
 }
