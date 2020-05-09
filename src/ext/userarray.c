@@ -964,8 +964,32 @@ static void quicksort_recursive(int min_index, int max_index, Value* values) {
 }
 
 
-static void sort_quicksort(int count, Value* values) {
-    return quicksort_recursive(0, count - 1, values);
+static void quicksort_recursive_callback(int min_index, int max_index, Value* values, Value callback) {
+    int pivot_index = max_index;
+    int gt_index = min_index;
+    Value pivot = values[pivot_index];
+    for(int i = min_index; i < pivot_index; i++) {
+        Value specimen = values[i];
+
+        Value callback_args[2] = { pivot, specimen };
+        Value sort_result = callCallback(callback, 2, callback_args);
+        // If we get a non-number result back, nothing really changes here.
+        // We're partitioning here based only if the specimen is gt, not lte,
+        // and we'll treat any less-than-1 value as lte.
+        if(IS_NUMBER(sort_result) && AS_NUMBER(sort_result) < 1) {
+            values[i] = values[gt_index];
+            values[gt_index] = specimen;
+            gt_index++;
+        }
+    }
+    values[pivot_index] = values[gt_index];
+    values[gt_index] = pivot;
+    if(gt_index - min_index > 1) {
+        quicksort_recursive_callback(min_index, gt_index - 1, values, callback);
+    }
+    if(max_index - gt_index > 1) {
+        quicksort_recursive_callback(gt_index, max_index, values, callback);
+    }
 }
 
 
@@ -988,7 +1012,42 @@ Value cc_function_ar_sort(int arg_count, Value* args) {
         target_array->inner.count++;
     }
 
-    sort_quicksort(target_array->inner.count, target_array->inner.values);
+    quicksort_recursive(0, target_array->inner.count - 1, target_array->inner.values);
+
+    return OBJ_VAL(target_array);
+}
+
+
+/**
+ * ar_sort_callback(array, callback)
+ * - returns nil on parameter error
+ * - returns a copy of the original array with the elements sorted using the
+ *   given callback function to compare elements.
+ *
+ * => callback(example, specimen)
+ * - returns -1, 0, or 1 based on whether the specimen should be sorted below,
+ *   equal to, or above the example.  Non-numeric return values are treated as
+ *   if zero was returned instead.
+ */
+Value cc_function_ar_sort_callback(int arg_count, Value* args) {
+    if(arg_count != 2 || !IS_USERARRAY(args[0]) || !IS_FUNCTION(args[1])) {
+        return NIL_VAL;
+    }
+
+    ObjUserArray* ua = AS_USERARRAY(args[0]);
+    ObjUserArray* target_array = newUserArray();
+    ua_grow(target_array, ua->inner.count);
+
+    for(int i = 0; i < ua->inner.count; i++) {
+        target_array->inner.values[i] = ua->inner.values[i];
+        target_array->inner.count++;
+    }
+
+    quicksort_recursive_callback(
+        0, target_array->inner.count - 1,
+        target_array->inner.values,
+        args[1]
+    );
 
     return OBJ_VAL(target_array);
 }
@@ -1049,6 +1108,15 @@ Value cc_function_ar_join(int arg_count, Value* args) {
 }
 
 
+/**
+ * ar_filter(array, callback)
+ * - returns nil on parameter error
+ * - returns a copy of the array filtered using the provided callback.
+ *
+ * => callback(value, index)
+ * - returns true if the array element should be included in the copy
+ * - returns non-true otherwise
+ */
 Value cc_function_ar_filter(int arg_count, Value* args) {
     if(arg_count != 2 || !IS_USERARRAY(args[0]) || !IS_FUNCTION(args[1])) {
         return NIL_VAL;
@@ -1107,6 +1175,7 @@ void cc_register_ext_userarray() {
     defineNative("ar_prepend",    cc_function_ar_prepend);
 
     defineNative("ar_sort",       cc_function_ar_sort);
+    defineNative("ar_sort_callback", cc_function_ar_sort_callback);
 
     defineNative("ar_join",       cc_function_ar_join);
 
