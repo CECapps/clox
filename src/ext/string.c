@@ -291,6 +291,12 @@ Value cc_function_string_split(int arg_count, Value* args) {
 }
 
 
+/**
+ * string_regex_matches(string, regex_string)
+ * - returns nil on parameter error
+ * - returns nil on regex compile error, lol good luck
+ * - returns true if the given extended POSIX regex matches the given string
+ */
 Value cc_function_string_regex_matches(int arg_count, Value* args) {
   if(arg_count != 2 || !IS_STRING(args[0]) || !IS_STRING(args[1])) {
     return NIL_VAL;
