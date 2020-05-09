@@ -7,7 +7,7 @@
 #include "../memory.h"
 #include "../vm.h"
 
-#include "userarray.h";
+#include "userarray.h"
 
 static int16_t st_normalize_index(ObjString* str, double raw_index) {
   // ObjString's length is held in an int, which is apparently 16 bits?

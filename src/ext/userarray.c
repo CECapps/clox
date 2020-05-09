@@ -1049,6 +1049,31 @@ Value cc_function_ar_join(int arg_count, Value* args) {
 }
 
 
+Value cc_function_ar_filter(int arg_count, Value* args) {
+    if(arg_count != 2 || !IS_USERARRAY(args[0]) || !IS_FUNCTION(args[1])) {
+        return NIL_VAL;
+    }
+
+    ObjUserArray* ua = AS_USERARRAY(args[0]);
+    ObjFunction* callback = AS_FUNCTION(args[1]);
+
+    ObjUserArray* new_ua = newUserArray();
+    ua_grow(new_ua, ua->inner.count);
+
+    for(int i = 0; i < ua->inner.count; i++) {
+        Value callback_args[2] = {
+            ua->inner.values[i],
+            NUMBER_VAL(i)
+        };
+        Value res = callCallback(OBJ_VAL(callback), 2, callback_args);
+        if(IS_BOOL(res) && AS_BOOL(res) == true) {
+            new_ua->inner.values[ new_ua->inner.count++ ] = ua->inner.values[i];
+        }
+    }
+    return OBJ_VAL(new_ua);
+}
+
+
 void cc_register_ext_userarray() {
 
     defineNative("val_is_userarray" ,cc_function_val_is_userarray);
@@ -1084,5 +1109,7 @@ void cc_register_ext_userarray() {
     defineNative("ar_sort",       cc_function_ar_sort);
 
     defineNative("ar_join",       cc_function_ar_join);
+
+    defineNative("ar_filter",     cc_function_ar_filter);
 
 }

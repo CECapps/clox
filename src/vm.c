@@ -166,6 +166,44 @@ static bool callValue(Value callee, int argCount) {
 }
 
 
+#ifdef FEATURE_FUNCTIONS
+static InterpretResult run(int until_frame); // lol
+
+Value callCallback(Value callback, int argCount, Value* args) {
+  if(!IS_OBJ(callback) || !IS_FUNCTION(callback)) {
+    runtimeError("Callback must be a function.");
+    return NIL_VAL;
+  }
+
+  int current_frame = vm.frameCount;
+  // call() below expects the function to be called to already be on the stack,
+  // folllowed by its arguments.  Set that up now.
+  push(callback);
+  for(int i = 0; i < argCount; i++) {
+    push(args[i]);
+  }
+
+  // call() works by manipulating the call frame and then moving the VM program
+  // counter to the start of the function body.  True means that we can continue.
+  bool success = call(AS_FUNCTION(callback), argCount);
+  if(!success) {
+    // call() will only return false if a runtime error was reported.
+    return NIL_VAL;
+  }
+  // callCallback happens from inside a native function.  We're going to fire
+  // the VM back up and resume execution from within the callback, stopping when
+  // a return happens and we're back at the frame we started at.
+  InterpretResult res = run(current_frame);
+
+  if(res != INTERPRET_OK) {
+    // Some sort of runtime error happened.  Assume the return value is bogus.
+    return NIL_VAL;
+  }
+  return pop();
+}
+#endif
+
+
 static bool isFalsey(Value value) {
   return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
 }
@@ -185,8 +223,11 @@ static void concatenate() {
   push(OBJ_VAL(result));
 }
 
-
+#ifdef FEATURE_FUNCTIONS
+static InterpretResult run(int until_frame) {
+#else
 static InterpretResult run() {
+#endif
   CallFrame* frame = &vm.frames[vm.frameCount - 1];
 
 #define READ_BYTE() (*frame->ip++)
@@ -368,6 +409,15 @@ static InterpretResult run() {
         push(result);
 
         frame = &vm.frames[vm.frameCount - 1];
+
+#ifdef FEATURE_FUNCTIONS
+        // If we're inside of a callback, return control to the calling context
+        // once we've hit the original calling frame.
+        if(vm.frameCount == until_frame) {
+          return INTERPRET_OK;
+        }
+#endif
+
         break;
       }
 
@@ -433,5 +483,9 @@ InterpretResult interpret(const char* source) {
   push(OBJ_VAL(function));
   callValue(OBJ_VAL(function), 0);
 
+#ifdef FEATURE_FUNCTIONS
+  return run(0);
+#else
   return run();
+#endif
 }

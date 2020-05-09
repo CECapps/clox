@@ -48,6 +48,7 @@ Value pop();
 
 #ifdef FEATURE_FUNCTIONS
 void defineNative(const char* name, NativeFn function);
+Value callCallback(Value callback, int argCount, Value* args);
 #endif
 
 
