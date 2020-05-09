@@ -556,15 +556,61 @@ Value cc_function_ar_slice(int arg_count, Value* args) {
 
 
 /**
- * ar_splice(user_array, index, donor_array, count?)
+ * ar_insert(user_array, index, donor_array)
  * - returns nil on parameter error
  * - returns false if the the given index is out of bounds of the array
- * - returns a new array with up to count elements from the donor array spliced
- *   in at the given index.  If no count is provided, the entire donor array is
- *   inserted.  If the count is larger than the donor array, new elements are
- *   not created.
+ * - returns a new array with the contents of the donor array inserted into the
+ *   user array, starting at the given idex of the user array.  If the index is
+ *   larger than the user array, nils are inserted before inserting the donor.
  */
-Value cc_function_ar_splice(int arg_count, Value* args) {}
+Value cc_function_ar_insert(int arg_count, Value* args) {
+    if(arg_count < 3 || !IS_USERARRAY(args[0]) || !IS_NUMBER(args[1]) || !IS_USERARRAY(args[2])) {
+        return NIL_VAL;
+    }
+
+    ObjUserArray* left = AS_USERARRAY(args[0]);
+    ObjUserArray* right = AS_USERARRAY(args[2]);
+    int16_t target_index = ua_normalize_index(left, AS_NUMBER(args[1]), false);
+    if(target_index < 0) {
+        return BOOL_VAL(false);
+    }
+
+    // We aren't doing bounds checking on the insert index.  If it's geater than
+    // our size, we will need to insert blanks at the end of the section to the
+    // left of the insert.
+    int addtl = target_index - left->inner.count;
+    if(addtl < 0) {
+        addtl = 0;
+    }
+
+    ObjUserArray* new_ua = newUserArray();
+    ua_grow(new_ua, left->inner.count + addtl + right->inner.count);
+
+    // We can stop anywhere inside the first array, or even outside of its bounds.
+    // Make sure that we don't go out of index during the first step.
+    int first_stop = addtl > 0 ? left->inner.count : target_index;
+
+    // Step 1: Copy from the left array up to the bounary.
+    for(int i = 0; i < first_stop; i++) {
+        new_ua->inner.values[ new_ua->inner.count++ ] = left->inner.values[i];
+    }
+    // Step 2: Insert blanks to hit the target index
+    if(addtl > 0) {
+        for(int i = 0; i < addtl; i++) {
+            new_ua->inner.values[ new_ua->inner.count++ ] = NIL_VAL;
+        }
+    }
+    // Step 3: Insert the right array
+    for(int i = 0; i < right->inner.count; i++) {
+        new_ua->inner.values[ new_ua->inner.count++ ] = right->inner.values[i];
+    }
+    // Step 4: Finish copying from the left array
+    for(int i = first_stop; i < left->inner.count; i++) {
+        new_ua->inner.values[ new_ua->inner.count++ ] = left->inner.values[i];
+    }
+
+    return OBJ_VAL(new_ua);
+}
 
 
 /**
@@ -971,7 +1017,7 @@ void cc_register_ext_userarray() {
     defineNative("ar_reverse",    cc_function_ar_reverse);
 
     defineNative("ar_slice",      cc_function_ar_slice);
-    defineNative("ar_splice",     cc_function_ar_splice);
+    defineNative("ar_insert",     cc_function_ar_insert);
     defineNative("ar_append",     cc_function_ar_append);
     defineNative("ar_prepend",    cc_function_ar_prepend);
 
