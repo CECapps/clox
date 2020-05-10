@@ -84,6 +84,20 @@ static struct ST_Legal_Range st_normalize_index_range(
 }
 
 
+static Value str_indexof_core(ObjString* haystack, ObjString* needle, int16_t starting_index) {
+  int16_t maximum_index = haystack->length - needle->length;
+  for(int index = starting_index; index <= maximum_index; index++) {
+    if(haystack->chars[index] == needle->chars[0]) {
+      // Yes, memcmp() returns 0 when left and right are identical.
+      if(memcmp(&haystack->chars[index], needle->chars, needle->length) == 0) {
+        return NUMBER_VAL(index);
+      }
+    }
+  }
+  return BOOL_VAL(false);
+}
+
+
 /**
  * string_length(string)
  * - returns nil on parameter error
@@ -134,101 +148,6 @@ Value cc_function_string_substring(int arg_count, Value* args) {
   }
   new_chars[count] = '\0';
   return OBJ_VAL(takeString(new_chars, count));
-}
-
-
-static Value str_indexof_core(ObjString* haystack, ObjString* needle, int16_t starting_index) {
-  int16_t maximum_index = haystack->length - needle->length;
-  for(int index = starting_index; index <= maximum_index; index++) {
-    if(haystack->chars[index] == needle->chars[0]) {
-      // Yes, memcmp() returns 0 when left and right are identical.
-      if(memcmp(&haystack->chars[index], needle->chars, needle->length) == 0) {
-        return NUMBER_VAL(index);
-      }
-    }
-  }
-  return BOOL_VAL(false);
-}
-
-
-/**
- * string_index_of(haystack_string, needle_string, starting_index?)
- * - returns nil on parameter error
- * - returns false if the given index out of legal range
- * - returns the index at which the substring needle_string is found in the
- *   given haystack_string, optionally starting the search at the given index.
- *   Returns false if the substring could not be located.
- */
-Value cc_function_string_index_of(int arg_count, Value* args) {
-  if(arg_count < 2 || arg_count > 3 || !IS_STRING(args[0]) || !IS_STRING(args[1])
-     || (arg_count == 3 && !IS_NUMBER(args[2]))
-  ) {
-    return NIL_VAL;
-  }
-
-  ObjString* haystack = AS_STRING(args[0]);
-  ObjString* needle = AS_STRING(args[1]);
-  if(needle->length < 1 || needle->length > haystack->length) {
-    return BOOL_VAL(false);
-  }
-
-  int16_t starting_index = 0;
-  if(arg_count == 3) {
-    starting_index = st_normalize_index(haystack, AS_NUMBER(args[2]));
-  }
-  if(starting_index < 0) {
-    return BOOL_VAL(false);
-  }
-
-  return str_indexof_core(haystack, needle, starting_index);
-}
-
-
-/**
- * string_right_index_of(haystack_string, needle_string, starting_index?)
- * - returns nil on parameter error
- * - returns false if the given index out of legal range
- * - returns the index at which the substring needle_string is found in the
- *   given haystack_string, optionally starting the search at the given index.
- *   Returns false if the substring could not be located.
- */
-Value cc_function_string_right_index_of(int arg_count, Value* args) {
-  if(arg_count < 2 || arg_count > 3 || !IS_STRING(args[0]) || !IS_STRING(args[1])
-     || (arg_count == 3 && !IS_NUMBER(args[2]))
-  ) {
-    return NIL_VAL;
-  }
-
-  ObjString* haystack = AS_STRING(args[0]);
-  ObjString* needle = AS_STRING(args[1]);
-  if(needle->length < 1 || needle->length > haystack->length) {
-    return BOOL_VAL(false);
-  }
-
-  int16_t starting_index = 0;
-  if(arg_count == 3) {
-    starting_index = st_normalize_index(haystack, AS_NUMBER(args[2]));
-  }
-  if(starting_index < 0) {
-    return BOOL_VAL(false);
-  }
-
-  bool found = false;
-  Value last_index;
-  while(true) {
-    Value res = str_indexof_core(haystack, needle, starting_index);
-    if(IS_NUMBER(res)) {
-      found = true;
-      last_index = res;
-      starting_index = 1 + (int16_t)AS_NUMBER(last_index);
-    } else if(IS_BOOL(res)) {
-      break;
-    }
-  }
-  if(!found) {
-    return BOOL_VAL(false);
-  }
-  return last_index;
 }
 
 
@@ -292,6 +211,105 @@ Value cc_function_string_split(int arg_count, Value* args) {
 
 
 /**
+ * string_index_of(haystack_string, needle_string, starting_index?)
+ * - returns nil on parameter error
+ * - returns false if the given index out of legal range
+ * - returns the index at which the substring needle_string is found in the
+ *   given haystack_string, optionally starting the search at the given index.
+ *   Returns false if the substring could not be located.
+ */
+Value cc_function_string_index_of(int arg_count, Value* args) {
+  if(arg_count < 2 || arg_count > 3 || !IS_STRING(args[0]) || !IS_STRING(args[1])
+     || (arg_count == 3 && !IS_NUMBER(args[2]))
+  ) {
+    return NIL_VAL;
+  }
+
+  ObjString* haystack = AS_STRING(args[0]);
+  ObjString* needle = AS_STRING(args[1]);
+  if(needle->length < 1 || needle->length > haystack->length) {
+    return BOOL_VAL(false);
+  }
+
+  int16_t starting_index = 0;
+  if(arg_count == 3) {
+    starting_index = st_normalize_index(haystack, AS_NUMBER(args[2]));
+  }
+  if(starting_index < 0) {
+    return BOOL_VAL(false);
+  }
+
+  return str_indexof_core(haystack, needle, starting_index);
+}
+
+
+/**
+ * string_contains(haystack_string, needle_string)
+ */
+Value cc_function_string_contains(int arg_count, Value* args) {}
+
+
+/**
+ * string_starts_with(haystack_string, needle_string)
+ */
+Value cc_function_string_starts_with(int arg_count, Value* args) {}
+
+
+/**
+ * string_right_index_of(haystack_string, needle_string, starting_index?)
+ * - returns nil on parameter error
+ * - returns false if the given index out of legal range
+ * - returns the index at which the substring needle_string is found in the
+ *   given haystack_string, optionally starting the search at the given index.
+ *   Returns false if the substring could not be located.
+ */
+Value cc_function_string_right_index_of(int arg_count, Value* args) {
+  if(arg_count < 2 || arg_count > 3 || !IS_STRING(args[0]) || !IS_STRING(args[1])
+     || (arg_count == 3 && !IS_NUMBER(args[2]))
+  ) {
+    return NIL_VAL;
+  }
+
+  ObjString* haystack = AS_STRING(args[0]);
+  ObjString* needle = AS_STRING(args[1]);
+  if(needle->length < 1 || needle->length > haystack->length) {
+    return BOOL_VAL(false);
+  }
+
+  int16_t starting_index = 0;
+  if(arg_count == 3) {
+    starting_index = st_normalize_index(haystack, AS_NUMBER(args[2]));
+  }
+  if(starting_index < 0) {
+    return BOOL_VAL(false);
+  }
+
+  bool found = false;
+  Value last_index;
+  while(true) {
+    Value res = str_indexof_core(haystack, needle, starting_index);
+    if(IS_NUMBER(res)) {
+      found = true;
+      last_index = res;
+      starting_index = 1 + (int16_t)AS_NUMBER(last_index);
+    } else if(IS_BOOL(res)) {
+      break;
+    }
+  }
+  if(!found) {
+    return BOOL_VAL(false);
+  }
+  return last_index;
+}
+
+
+/**
+ * string_ends_with(haystack_string, needle_string)
+ */
+Value cc_function_string_ends_with(int arg_count, Value* args) {}
+
+
+/**
  * string_regex_matches(string, regex_string)
  * - returns nil on parameter error
  * - returns nil on regex compile error, lol good luck
@@ -328,11 +346,134 @@ Value cc_function_string_regex_matches(int arg_count, Value* args) {
 }
 
 
+/**
+ * string_replace(haystack_string, needle_string, replace_string)
+ */
+Value cc_function_string_replace(int arg_count, Value* args) {}
+
+
+/**
+ * string_splice(recipient_string, index, donor_string)
+ */
+Value cc_function_string_splice(int arg_count, Value* args) {}
+
+
+/**
+ * string_repeat(source_string, count)
+ */
+Value cc_function_string_repeat(int arg_count, Value* args) {}
+
+
+/**
+ * string_reverse(source_string)
+ */
+Value cc_function_string_reverse(int arg_count, Value* args) {}
+
+
+/**
+ * string_shuffle(source_string)
+ */
+Value cc_function_string_shuffle(int arg_count, Value* args) {}
+
+
+/**
+ * string_pad_left(source_string, padding_string, minimum_width)
+ */
+Value cc_function_string_pad_left(int arg_count, Value* args) {}
+
+
+/**
+ * string_pad_right(source_string, padding_string, minimum_width)
+ */
+Value cc_function_string_pad_right(int arg_count, Value* args) {}
+
+
+/**
+ * string_center(source_string, padding_string, minimum_width)
+ */
+Value cc_function_string_center(int arg_count, Value* args) {}
+
+
+/**
+ * string_escape_dq(source_string)
+ */
+Value cc_function_string_escape_dq(int arg_count, Value* args) {}
+
+
+/**
+ * string_chunk(source_string, chunk_size, separator_string = "\n")
+ */
+Value cc_function_string_chunk(int arg_count, Value* args) {}
+
+
+/**
+ * string_trim(source_string, chars_to_replace = whitespace)
+ */
+Value cc_function_string_trim(int arg_count, Value* args) {}
+
+
+/**
+ * string_trim_left(source_string, chars_to_replace = whitespace)
+ */
+Value cc_function_string_trim_left(int arg_count, Value* args) {}
+
+
+/**
+ * string_trim_right(source_string, chars_to_replace = whitespace)
+ */
+Value cc_function_string_trim_right(int arg_count, Value* args) {}
+
+
+/**
+ * stringify(value)
+ */
+Value cc_function_stringify(int arg_count, Value* args) {}
+
+
+/**
+ * char_to_integer(string)
+ */
+Value cc_function_char_to_integer(int arg_count, Value* args) {}
+
+
+/**
+ * char_from_integer(number)
+ */
+Value cc_function_char_from_integer(int arg_count, Value* args) {}
+
+
 void cc_register_ext_string() {
   defineNative("string_length",         cc_function_string_length);
+
   defineNative("string_substring",      cc_function_string_substring);
-  defineNative("string_index_of",       cc_function_string_index_of);
-  defineNative("string_right_index_of", cc_function_string_right_index_of);
   defineNative("string_split",          cc_function_string_split);
+
+  defineNative("string_index_of",       cc_function_string_index_of);
+  defineNative("string_contains",       cc_function_string_contains);
+  defineNative("string_starts_with",    cc_function_string_starts_with);
+  defineNative("string_right_index_of", cc_function_string_right_index_of);
+  defineNative("string_ends_with",      cc_function_string_ends_with);
+
   defineNative("string_regex_matches",  cc_function_string_regex_matches);
+
+  defineNative("string_replace",        cc_function_string_replace);
+  defineNative("string_splice",         cc_function_string_splice);
+
+  defineNative("string_repeat",         cc_function_string_repeat);
+
+  defineNative("string_reverse",        cc_function_string_reverse);
+  defineNative("string_shuffle",        cc_function_string_shuffle);
+  defineNative("string_pad_left",       cc_function_string_pad_left);
+  defineNative("string_pad_right",      cc_function_string_pad_right);
+  defineNative("string_center",         cc_function_string_center);
+  defineNative("string_escape_dq",      cc_function_string_escape_dq);
+  defineNative("string_chunk",          cc_function_string_chunk);
+
+  defineNative("string_trim",           cc_function_string_trim);
+  defineNative("string_trim_left",      cc_function_string_trim_left);
+  defineNative("string_trim_right",     cc_function_string_trim_right);
+
+  defineNative("stringify",             cc_function_stringify);
+  defineNative("char_to_integer",       cc_function_char_to_integer);
+  defineNative("char_from_integer",     cc_function_char_from_integer);
 }
