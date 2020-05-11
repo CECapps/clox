@@ -6,4 +6,6 @@
 
 ObjFunction* compile(const char* source, int starting_line);
 
+void transclude(char* source);
+
 #endif

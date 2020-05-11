@@ -4,12 +4,6 @@
 #include "common.h"
 #include "scanner.h"
 
-typedef struct {
-  const char* start;
-  const char* current;
-  int line;
-} Scanner;
-
 Scanner scanner;
 
 
@@ -17,6 +11,16 @@ void initScanner(const char* source, int starting_line) {
   scanner.start = source;
   scanner.current = source;
   scanner.line = starting_line;
+}
+
+
+Scanner getCurrentScanner() {
+  return scanner;
+}
+
+
+void replaceCurrentScanner(Scanner new_scanner) {
+  scanner = new_scanner;
 }
 
 
@@ -163,7 +167,14 @@ static TokenType identifierType() {
       if (scanner.current - scanner.start > 1) {
         switch (scanner.start[1]) {
           case 'h': return checkKeyword(2, 2, "is", TOKEN_THIS);
-          case 'r': return checkKeyword(2, 2, "ue", TOKEN_TRUE);
+          case 'r':
+            if (scanner.current - scanner.start > 2) {
+              switch(scanner.start[2]) {
+                case 'a': return checkKeyword(3, 7, "nsclude", TOKEN_IDENTIFIER); // TOKEN_TRANSCLUDE);
+                case 'u': return checkKeyword(3, 1, "e", TOKEN_TRUE);
+              }
+            }
+            break;
         }
       }
       break;

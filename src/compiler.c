@@ -873,6 +873,25 @@ static void exitStatement() {
 
 #endif
 
+
+static void transcludeStatement() {
+  return;
+  // transclude "filename";
+  advance();
+  string(false);
+  consume(TOKEN_SEMICOLON, "Expect ';' after transclude string.");
+  // The string containing the data we care about has been turned into a
+  // constant, and it has been placed into the current chunk after an
+  // OP_CONSTANT instruction.  It should, therefore, be the latest element
+  // put into the constants array in the current chunk.  Right?
+  Value filename = current->function->chunk.constants.values[ current->function->chunk.constants.count -1 ];
+  char* fn = AS_CSTRING(filename);
+  printf("** transcludeStatement: fn=%s\n", fn);
+  transclude(fn);
+  return;
+}
+
+
 static void synchronize() {
   parser.panicMode = false;
 
@@ -936,6 +955,8 @@ static void statement() {
   } else if(match(TOKEN_ECHO)) {
     echoStatement();
 #endif
+  } else if (false) { // match(TOKEN_TRANSCLUDE)) {
+    transcludeStatement();
   } else {
     expressionStatement();
   }
@@ -958,4 +979,27 @@ ObjFunction* compile(const char* source, int starting_line) {
 
   ObjFunction* function = endCompiler();
   return parser.hadError ? NULL : function;
+}
+
+
+void transclude(char* source) {
+  return;
+  printf("** transclude: calling getCurrentScanner\n");
+  Scanner old_scanner = getCurrentScanner();
+  printf("** transclude: calling initScanner\n");
+  initScanner(source, 1);
+
+  printf("** transclude: calling advance\n");
+  advance();
+
+  printf("** transclude: calling while\n");
+  while (!match(TOKEN_EOF)) {
+    printf("** transclude: declaration!\n");
+    declaration();
+  }
+
+  printf("** transclude: calling replaceCurrentScanner\n");
+  replaceCurrentScanner(old_scanner);
+
+  printf("** transclude: done!\n");
 }
