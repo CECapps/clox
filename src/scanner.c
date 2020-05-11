@@ -13,10 +13,10 @@ typedef struct {
 Scanner scanner;
 
 
-void initScanner(const char* source) {
+void initScanner(const char* source, int starting_line) {
   scanner.start = source;
   scanner.current = source;
-  scanner.line = 1;
+  scanner.line = starting_line;
 }
 
 

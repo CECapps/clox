@@ -942,8 +942,8 @@ static void statement() {
 }
 
 
-ObjFunction* compile(const char* source) {
-  initScanner(source);
+ObjFunction* compile(const char* source, int starting_line) {
+  initScanner(source, starting_line);
   Compiler compiler;
   initCompiler(&compiler, TYPE_SCRIPT);
 

@@ -10,15 +10,16 @@
 
 static void repl() {
   char line[1024];
+  int line_count = 0;
   for (;;) {
-    printf("lox> "); // Variation
+    printf("lox> ");
 
     if (!fgets(line, sizeof(line), stdin)) {
       printf("\n");
       break;
     }
 
-    interpret(line);
+    interpret(line, line_count++);
   }
 }
 
@@ -55,7 +56,7 @@ static char* readFile(const char* path) {
 
 static void runFile(const char* path) {
   char* source = readFile(path);
-  InterpretResult result = interpret(source);
+  InterpretResult result = interpret(source, 1);
   free(source);
 
   if (result == INTERPRET_COMPILE_ERROR) exit(65);

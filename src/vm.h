@@ -42,7 +42,7 @@ extern VM vm;
 
 void initVM();
 void freeVM();
-InterpretResult interpret(const char* source);
+InterpretResult interpret(const char* source, int starting_line);
 void push(Value value);
 Value pop();
 

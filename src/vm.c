@@ -476,8 +476,8 @@ static InterpretResult run() {
 }
 
 
-InterpretResult interpret(const char* source) {
-  ObjFunction* function = compile(source);
+InterpretResult interpret(const char* source, int starting_line) {
+  ObjFunction* function = compile(source, starting_line);
   if (function == NULL) return INTERPRET_COMPILE_ERROR;
 
   push(OBJ_VAL(function));
