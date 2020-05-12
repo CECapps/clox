@@ -628,6 +628,7 @@ ParseRule rules[] = {
 #ifdef FEATURE_ECHO
   { NULL,     NULL,    PREC_NONE },       // TOKEN_ECHO - same as TOKEN_PRINT
 #endif
+  { NULL,     NULL,    PREC_NONE },       // TOKEN_TRANSCLUDE
   { NULL,     NULL,    PREC_NONE },       // TOKEN_ERROR
   { NULL,     NULL,    PREC_NONE },       // TOKEN_EOF
 };
@@ -875,19 +876,46 @@ static void exitStatement() {
 
 
 static void transcludeStatement() {
-  return;
   // transclude "filename";
   advance();
   string(false);
   consume(TOKEN_SEMICOLON, "Expect ';' after transclude string.");
+  emitByte(OP_TRANSCLUDE);
   // The string containing the data we care about has been turned into a
   // constant, and it has been placed into the current chunk after an
   // OP_CONSTANT instruction.  It should, therefore, be the latest element
   // put into the constants array in the current chunk.  Right?
   Value filename = current->function->chunk.constants.values[ current->function->chunk.constants.count -1 ];
-  char* fn = AS_CSTRING(filename);
-  printf("** transcludeStatement: fn=%s\n", fn);
-  transclude(fn);
+  char* path = AS_CSTRING(filename);
+
+  // lol c&p from main
+  FILE* file = fopen(path, "rb");
+  if (file == NULL) {
+    fprintf(stderr, "Could not open file \"%s\".\n", path);
+    exit(74);
+  }
+
+  fseek(file, 0L, SEEK_END);
+  size_t fileSize = ftell(file);
+  rewind(file);
+
+  char* buffer = (char*)malloc(fileSize + 1);
+  if (buffer == NULL) {
+    fprintf(stderr, "Not enough memory to read \"%s\".\n", path);
+    exit(74);
+  }
+
+  size_t bytesRead = fread(buffer, sizeof(char), fileSize, file);
+  if (bytesRead < fileSize) {
+    fprintf(stderr, "Could not read file \"%s\".\n", path);
+    exit(74);
+  }
+
+  buffer[bytesRead] = '\0';
+
+  fclose(file);
+
+  transclude(buffer);
   return;
 }
 
@@ -955,7 +983,7 @@ static void statement() {
   } else if(match(TOKEN_ECHO)) {
     echoStatement();
 #endif
-  } else if (false) { // match(TOKEN_TRANSCLUDE)) {
+  } else if (match(TOKEN_TRANSCLUDE)) {
     transcludeStatement();
   } else {
     expressionStatement();
@@ -983,23 +1011,17 @@ ObjFunction* compile(const char* source, int starting_line) {
 
 
 void transclude(char* source) {
-  return;
-  printf("** transclude: calling getCurrentScanner\n");
   Scanner old_scanner = getCurrentScanner();
-  printf("** transclude: calling initScanner\n");
+  Token old_current_token = parser.current;
   initScanner(source, 1);
 
-  printf("** transclude: calling advance\n");
   advance();
 
-  printf("** transclude: calling while\n");
   while (!match(TOKEN_EOF)) {
-    printf("** transclude: declaration!\n");
     declaration();
   }
 
-  printf("** transclude: calling replaceCurrentScanner\n");
+  parser.current = old_current_token;
   replaceCurrentScanner(old_scanner);
 
-  printf("** transclude: done!\n");
 }

@@ -149,6 +149,9 @@ int disassembleInstruction(Chunk* chunk, int offset) {
       return byteInstruction("OP_ECHO", chunk, offset);
 #endif
 
+    case OP_TRANSCLUDE:
+      return simpleInstruction("OP_TRANSCLUDE", offset);
+
     default:
       printf("Unknown opcode %d\n", instruction);
       return offset + 1;

@@ -36,6 +36,7 @@ typedef enum {
 #ifdef FEATURE_ECHO
     OP_ECHO,
 #endif
+    OP_TRANSCLUDE
 } OpCode;
 
 

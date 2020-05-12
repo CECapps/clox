@@ -29,14 +29,16 @@ typedef enum {
   TOKEN_PRINT, TOKEN_RETURN, TOKEN_SUPER, TOKEN_THIS,
   TOKEN_TRUE, TOKEN_VAR, TOKEN_WHILE,
 
+// ******************************REMEMBER******************************
+// You MUST add each new token to the precedence list in the compiler!
+// ******************************REMEMBER******************************
 #ifdef FEATURE_EXIT
   TOKEN_EXIT,
 #endif
 #ifdef FEATURE_ECHO
   TOKEN_ECHO,
 #endif
-
-  // TOKEN_TRANSCLUDE,
+  TOKEN_TRANSCLUDE,
 
   TOKEN_ERROR,
   TOKEN_EOF

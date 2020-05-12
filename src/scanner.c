@@ -170,7 +170,7 @@ static TokenType identifierType() {
           case 'r':
             if (scanner.current - scanner.start > 2) {
               switch(scanner.start[2]) {
-                case 'a': return checkKeyword(3, 7, "nsclude", TOKEN_IDENTIFIER); // TOKEN_TRANSCLUDE);
+                case 'a': return checkKeyword(3, 7, "nsclude", TOKEN_TRANSCLUDE);
                 case 'u': return checkKeyword(3, 1, "e", TOKEN_TRUE);
               }
             }

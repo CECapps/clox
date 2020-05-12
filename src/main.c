@@ -19,6 +19,12 @@ static void repl() {
       break;
     }
 
+#ifdef FEATURE_EXIT
+    if(strncmp(line, "exit", 4) == 0) {
+      return;
+    }
+#endif
+
     interpret(line, line_count++);
   }
 }
@@ -66,7 +72,7 @@ static void runFile(const char* path) {
 
 int main(int argc, const char* argv[]) {
   initVM();
-/*
+
   if (argc == 1) {
     repl();
   } else if (argc == 2) {
@@ -75,9 +81,7 @@ int main(int argc, const char* argv[]) {
     fprintf(stderr, "Usage: clox [path]\n");
     exit(64);
   }
-*/
-  char* ugh = "foo";
-  interpret(ugh, 1);
+
   freeVM();
 
   return 0;

@@ -445,19 +445,27 @@ static InterpretResult run() {
 #endif
 
 #ifdef FEATURE_ECHO
-    case OP_ECHO: {
-      uint8_t arg_count = READ_BYTE();
-      uint8_t pops = 0;
-      while(arg_count-- > 0) {
-        printValue(peek(arg_count));
-        pops++;
+      case OP_ECHO: {
+        uint8_t arg_count = READ_BYTE();
+        uint8_t pops = 0;
+        while(arg_count-- > 0) {
+          printValue(peek(arg_count));
+          pops++;
+        }
+        while(pops-- > 0) {
+          pop();
+        }
+        break;
       }
-      while(pops-- > 0) {
-        pop();
-      }
-      break;
-    }
 #endif
+
+      case OP_TRANSCLUDE: {
+        // Our work was done in the compiler.  The filename that was transacluded
+        // is forced into the chunk because of how the string parser works, so
+        // let's clean that up now.  @FIXME This is dumb.
+        pop();
+        break;
+      }
 
       // Variation
       default: {
