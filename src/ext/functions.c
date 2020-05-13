@@ -17,6 +17,7 @@
 
 #include "./number.h"
 #include "./string.h"
+#include "./file.h"
 
 Value cc_function_debug_dump_stack(int arg_count, Value* args) {
   int counter = 0;
@@ -134,4 +135,5 @@ void cc_register_ext_functions() {
 
   cc_register_ext_number();
   cc_register_ext_string();
+  cc_register_ext_file();
 }
