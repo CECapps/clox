@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <fcntl.h>
 
 #include "memory.h"
 #include "object.h"
@@ -35,6 +36,14 @@ ObjUserArray* newUserArray() {
 
   initValueArray(&array->inner);
   return array;
+}
+
+
+ObjFileHandle* newFileHandle(FILE* handle, struct flock* lock) {
+  ObjFileHandle* fh = ALLOCATE_OBJ(ObjFileHandle, OBJ_FILEHANDLE);
+  fh->handle = handle;
+  fh->lock = lock;
+  return fh;
 }
 
 #endif

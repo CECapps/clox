@@ -1,6 +1,9 @@
 #ifndef clox_object_h
 #define clox_object_h
 
+#include <stdio.h>
+#include <fcntl.h>
+
 #include "common.h"
 #include "chunk.h"
 #include "value.h"
@@ -15,6 +18,7 @@
 #ifdef CC_FEATURES
 #define IS_USERHASH(value)      isObjType(value, OBJ_USERHASH)
 #define IS_USERARRAY(value)     isObjType(value, OBJ_USERARRAY)
+#define IS_FILEHANDLE(value)    isObjType(value, OBJ_FILEHANDLE)
 #endif
 
 #define AS_FUNCTION(value)      ((ObjFunction*)AS_OBJ(value))
@@ -25,6 +29,7 @@
 #ifdef CC_FEATURES
 #define AS_USERHASH(value)      ((ObjUserHash*)AS_OBJ(value))
 #define AS_USERARRAY(value)     ((ObjUserArray*)AS_OBJ(value))
+#define AS_FILEHANDLE(value)    ((ObjFileHandle*)AS_OBJ(value))
 #endif
 
 typedef enum {
@@ -34,6 +39,7 @@ typedef enum {
 #ifdef CC_FEATURES
   OBJ_USERHASH,
   OBJ_USERARRAY,
+  OBJ_FILEHANDLE,
 #endif
 } ObjType;
 
@@ -70,6 +76,12 @@ typedef struct {
   Obj obj;
   ValueArray inner;
 } ObjUserArray;
+
+typedef struct {
+  Obj obj;
+  FILE* handle;
+  struct flock* lock;
+} ObjFileHandle;
 #endif
 
 struct sObjString {
@@ -83,6 +95,7 @@ struct sObjString {
 #ifdef CC_FEATURES
 ObjUserHash* newUserHash();
 ObjUserArray* newUserArray();
+ObjFileHandle* newFileHandle(FILE* handle, struct flock* lock);
 #endif
 ObjFunction* newFunction();
 ObjNative* newNative(NativeFn function);
