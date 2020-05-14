@@ -29,16 +29,14 @@ typedef enum {
   TOKEN_PRINT, TOKEN_RETURN, TOKEN_SUPER, TOKEN_THIS,
   TOKEN_TRUE, TOKEN_VAR, TOKEN_WHILE,
 
+#ifdef CC_FEATURES
 // ******************************REMEMBER******************************
 // You MUST add each new token to the precedence list in the compiler!
 // ******************************REMEMBER******************************
-#ifdef FEATURE_EXIT
   TOKEN_EXIT,
-#endif
-#ifdef FEATURE_ECHO
   TOKEN_ECHO,
-#endif
   TOKEN_TRANSCLUDE,
+#endif
 
   TOKEN_ERROR,
   TOKEN_EOF
@@ -54,7 +52,9 @@ typedef struct {
 void initScanner(const char* source, int starting_line);
 Token scanToken();
 
+#ifdef CC_FEATURES
 Scanner getCurrentScanner();
 void replaceCurrentScanner(Scanner new_scanner);
+#endif
 
 #endif

@@ -21,7 +21,7 @@
 void initTable(Table* table) {
   table->count = 0;
   table->capacity = 0;
-#ifdef FEATURE_USER_HASHES
+#ifdef CC_FEATURES
   table->tombstone_count = 0;
 #endif
   table->entries = NULL;
@@ -122,7 +122,7 @@ bool tableDelete(Table* table, ObjString* key) {
   entry->key = NULL;
   entry->value = BOOL_VAL(true);
 
-#ifdef FEATURE_USER_HASHES
+#ifdef CC_FEATURES
   table->tombstone_count++;
 #endif
 

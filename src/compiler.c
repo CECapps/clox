@@ -455,7 +455,7 @@ static void or_(bool canAssign) {
   patchJump(endJump);
 }
 
-#ifdef FEATURE_STRING_BACKSLASH_ESCAPES
+#ifdef CC_FEATURES
 
 static bool isHex(char c) {
   return (c >= 'a' && c <= 'f') ||
@@ -469,15 +469,12 @@ static void string(bool canAssign) {
   // this allocation will be larger than needed.  This should not matter.  I think.
   char *new_str = ALLOCATE(char, parser.previous.length + 1);
   int new_index = 0;
-#ifdef FEATURE_STRING_SINGLE_QUOTED
+
   // If single-quoted strings are enabled, only perform backslash interpolation
   // on double-quoted strings.  If backslash interpolation is disabled, this
   // code doesn't even get run.
   bool in_double_quotes = parser.previous.start[0] == '"';
-#else
-  // Single-quoted strings are disabled, so we are absolutely in double quotes.
-  bool in_double_quotes = true;
-#endif
+
   // The index starts at 1 to cut off the opening quote, and ends at length - 1
   // to cut off the closing quote.
   for(int orig_index = 1; orig_index < (parser.previous.length - 1); orig_index++) {
@@ -514,13 +511,11 @@ static void string(bool canAssign) {
             }
           }
         }
-#ifdef FEATURE_STRING_SINGLE_QUOTED
       } else if(!in_double_quotes && parser.previous.start[orig_index + 1] == '\'') {
         // We are not inside of a double-quoted string.  We know that single-quoted
         // strings are enabled, and we know we are inside of one.  Turn \' into '.
         c = '\'';
         orig_index++;
-#endif
       }
     }
     new_str[new_index] = c;
@@ -531,7 +526,7 @@ static void string(bool canAssign) {
   emitConstant(OBJ_VAL(copyString(new_str, new_index)));
 }
 
-#else // FEATURE_STRING_BACKSLASH_ESCAPES
+#else // CC_FEATURES
 
 // The +1 and -2 adjust for the quotes in the string stored in parser.previous
 static void string(bool canAssign) {
@@ -622,13 +617,11 @@ ParseRule rules[] = {
   { literal,  NULL,    PREC_NONE },       // TOKEN_TRUE
   { NULL,     NULL,    PREC_NONE },       // TOKEN_VAR
   { NULL,     NULL,    PREC_NONE },       // TOKEN_WHILE
-#ifdef FEATURE_EXIT
+#ifdef CC_FEATURES
   { NULL,     NULL,    PREC_NONE },       // TOKEN_EXIT
-#endif
-#ifdef FEATURE_ECHO
   { NULL,     NULL,    PREC_NONE },       // TOKEN_ECHO - same as TOKEN_PRINT
-#endif
   { NULL,     NULL,    PREC_NONE },       // TOKEN_TRANSCLUDE
+#endif
   { NULL,     NULL,    PREC_NONE },       // TOKEN_ERROR
   { NULL,     NULL,    PREC_NONE },       // TOKEN_EOF
 };
@@ -809,7 +802,7 @@ static void printStatement() {
   emitByte(OP_PRINT);
 }
 
-#ifdef FEATURE_ECHO
+#ifdef CC_FEATURES
 
 static void echoStatement() {
   uint8_t arg_count = 0;
@@ -859,7 +852,7 @@ static void whileStatement() {
   emitByte(OP_POP);
 }
 
-#ifdef FEATURE_EXIT
+#ifdef CC_FEATURES
 
 static void exitStatement() {
   if (match(TOKEN_SEMICOLON)) {
@@ -871,8 +864,6 @@ static void exitStatement() {
     emitByte(OP_EXIT);
   }
 }
-
-#endif
 
 
 static void transcludeStatement() {
@@ -919,6 +910,7 @@ static void transcludeStatement() {
   return;
 }
 
+#endif
 
 static void synchronize() {
   parser.panicMode = false;
@@ -975,16 +967,14 @@ static void statement() {
     beginScope();
     block();
     endScope();
-#ifdef FEATURE_EXIT
+#ifdef CC_FEATURES
   } else if(match(TOKEN_EXIT)) {
     exitStatement();
-#endif
-#ifdef FEATURE_ECHO
   } else if(match(TOKEN_ECHO)) {
     echoStatement();
-#endif
   } else if (match(TOKEN_TRANSCLUDE)) {
     transcludeStatement();
+#endif
   } else {
     expressionStatement();
   }
@@ -1009,7 +999,7 @@ ObjFunction* compile(const char* source, int starting_line) {
   return parser.hadError ? NULL : function;
 }
 
-
+#ifdef CC_FEATURES
 void transclude(char* source) {
   Scanner old_scanner = getCurrentScanner();
   Token old_current_token = parser.current;
@@ -1025,3 +1015,4 @@ void transclude(char* source) {
   replaceCurrentScanner(old_scanner);
 
 }
+#endif

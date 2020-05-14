@@ -13,6 +13,7 @@ void initScanner(const char* source, int starting_line) {
   scanner.line = starting_line;
 }
 
+#ifdef CC_FEATURES
 
 Scanner getCurrentScanner() {
   return scanner;
@@ -23,6 +24,7 @@ void replaceCurrentScanner(Scanner new_scanner) {
   scanner = new_scanner;
 }
 
+#endif
 
 static bool isAlpha(char c) {
   return (c >= 'a' && c <= 'z') ||
@@ -138,11 +140,11 @@ static TokenType identifierType() {
     case 'e':
       if (scanner.current - scanner.start > 1) {
         switch (scanner.start[1]) {
-#ifdef FEATURE_ECHO
+#ifdef CC_FEATURES
           case 'c': return checkKeyword(2, 2, "ho", TOKEN_ECHO);
 #endif
           case 'l': return checkKeyword(2, 2, "se", TOKEN_ELSE);
-#ifdef FEATURE_EXIT
+#ifdef CC_FEATURES
           case 'x': return checkKeyword(2, 2, "it", TOKEN_EXIT);
 #endif
         }
@@ -170,7 +172,9 @@ static TokenType identifierType() {
           case 'r':
             if (scanner.current - scanner.start > 2) {
               switch(scanner.start[2]) {
+#ifdef CC_FEATURES
                 case 'a': return checkKeyword(3, 7, "nsclude", TOKEN_TRANSCLUDE);
+#endif
                 case 'u': return checkKeyword(3, 1, "e", TOKEN_TRUE);
               }
             }
@@ -211,7 +215,7 @@ static Token string(char delimiter) {
   while (peek() != delimiter && !isAtEnd()) {
     if (peek() == '\n') scanner.line++;
 
-#ifdef FEATURE_STRING_BACKSLASH_ESCAPES
+#ifdef CC_FEATURES
     if(peek() == '\\' && peekNext() == delimiter) {
       // Consuming the backslash now will cause the call to advance() below to
       // then consume the delimiter, allowing the loop check to continue.
@@ -264,7 +268,7 @@ Token scanToken() {
       return makeToken(match('=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER);
 
     case '"': return string('"');
-#ifdef FEATURE_STRING_SINGLE_QUOTED
+#ifdef CC_FEATURES
     case '\'': return string('\'');
 #endif
   }

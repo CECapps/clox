@@ -3,7 +3,6 @@
 #include <string.h>
 #include <time.h>
 
-// Needed for FEATURE_EXIT
 #include <stdlib.h>
 
 #include "common.h"
@@ -13,13 +12,9 @@
 #include "memory.h"
 #include "vm.h"
 
-#ifdef FEATURE_FUNCTIONS
+#ifdef CC_FEATURES
 #include "ext/functions.h"
-#endif
-#ifdef FEATURE_USER_HASHES
 #include "ext/userhash.h"
-#endif
-#ifdef FEATURE_USER_ARRAYS
 #include "ext/userarray.h"
 #endif
 
@@ -61,7 +56,7 @@ static void runtimeError(const char* format, ...) {
   resetStack();
 }
 
-#ifdef FEATURE_FUNCTIONS
+#ifdef CC_FEATURES
 void defineNative(const char* name, NativeFn function) {
 #else
 static void defineNative(const char* name, NativeFn function) {
@@ -83,13 +78,9 @@ void initVM() {
 
   defineNative("clock", clockNative);
 
-#ifdef FEATURE_FUNCTIONS
+#ifdef CC_FEATURES
   cc_register_ext_functions();
-#endif
-#ifdef FEATURE_USER_HASHES
   cc_register_ext_userhash();
-#endif
-#ifdef FEATURE_USER_ARRAYS
   cc_register_ext_userarray();
 #endif
 }
@@ -166,7 +157,7 @@ static bool callValue(Value callee, int argCount) {
 }
 
 
-#ifdef FEATURE_FUNCTIONS
+#ifdef CC_FEATURES
 static InterpretResult run(int until_frame); // lol
 
 Value callCallback(Value callback, int argCount, Value* args) {
@@ -223,7 +214,7 @@ static void concatenate() {
   push(OBJ_VAL(result));
 }
 
-#ifdef FEATURE_FUNCTIONS
+#ifdef CC_FEATURES
 static InterpretResult run(int until_frame) {
 #else
 static InterpretResult run() {
@@ -410,7 +401,7 @@ static InterpretResult run() {
 
         frame = &vm.frames[vm.frameCount - 1];
 
-#ifdef FEATURE_FUNCTIONS
+#ifdef CC_FEATURES
         // If we're inside of a callback, return control to the calling context
         // once we've hit the original calling frame.
         if(vm.frameCount == until_frame) {
@@ -421,7 +412,7 @@ static InterpretResult run() {
         break;
       }
 
-#ifdef FEATURE_EXIT
+#ifdef CC_FEATURES
       case OP_EXIT: {
         // POSIX says to only use 8 bits out of the 16 bit ("int" type) exit value
         double errorlevel = AS_NUMBER(pop());
@@ -444,7 +435,7 @@ static InterpretResult run() {
       }
 #endif
 
-#ifdef FEATURE_ECHO
+#ifdef CC_FEATURES
       case OP_ECHO: {
         uint8_t arg_count = READ_BYTE();
         uint8_t pops = 0;
@@ -491,7 +482,7 @@ InterpretResult interpret(const char* source, int starting_line) {
   push(OBJ_VAL(function));
   callValue(OBJ_VAL(function), 0);
 
-#ifdef FEATURE_FUNCTIONS
+#ifdef CC_FEATURES
   return run(0);
 #else
   return run();

@@ -15,14 +15,10 @@ Each chapter of the book ends with a series of challenges.  I will be reviewing
 each challenge.
 
 This code is built for Debian Buster inside WSL.  The target compiler is [`tcc`][2].
+Build by invoking the one-liner `compile.sh` script.
 
-Build by invoking `tcc -Wall -o bin/clox src/*.c`
-
-To create a debug build, define `DEBUG`: `tcc -DDEBUG -Wall -o bin/clox src/*.c`
-
-This interpreter contains non-standard features.  Each feature is hidden behind
-a compile-time flag.  Flags can be found in `common.h`.  To enable all features,
-define `CC_FEATURES`: `tcc -DCC_FEATURES -Wall -o bin/clox src/*.c`
+This interpreter contains non-standard features.  These features are hidden behind
+the `CC_FEATURES` flag, which is enabled by default in `common.h`.
 
  [1]: https://craftinginterpreters.com
  [2]: http://www.tinycc.org/

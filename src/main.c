@@ -19,7 +19,7 @@ static void repl() {
       break;
     }
 
-#ifdef FEATURE_EXIT
+#ifdef CC_FEATURES
     if(strncmp(line, "exit", 4) == 0) {
       return;
     }

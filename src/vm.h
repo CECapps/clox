@@ -46,7 +46,7 @@ InterpretResult interpret(const char* source, int starting_line);
 void push(Value value);
 Value pop();
 
-#ifdef FEATURE_FUNCTIONS
+#ifdef CC_FEATURES
 void defineNative(const char* name, NativeFn function);
 Value callCallback(Value callback, int argCount, Value* args);
 #endif

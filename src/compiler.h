@@ -6,6 +6,8 @@
 
 ObjFunction* compile(const char* source, int starting_line);
 
+#ifdef CC_FEATURES
 void transclude(char* source);
+#endif
 
 #endif
