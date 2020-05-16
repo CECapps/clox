@@ -16,6 +16,7 @@
 #include "ext/functions.h"
 #include "ext/userhash.h"
 #include "ext/userarray.h"
+#include "ext/ferrors.h"
 #endif
 
 VM vm;
@@ -61,9 +62,10 @@ void defineNative(const char* name, NativeFn function) {
 #else
 static void defineNative(const char* name, NativeFn function) {
 #endif
-  push(OBJ_VAL(copyString(name, (int)strlen(name))));
-  push(OBJ_VAL(newNative(function)));
-  tableSet(&vm.globals, AS_STRING(vm.stack[0]), vm.stack[1]);
+  ObjString* native_name = copyString(name, (int)strlen(name));
+  push(OBJ_VAL(native_name));
+  push(OBJ_VAL(newNative(function, native_name)));
+  tableSet(&vm.globals, native_name, vm.stack[1]);
   pop();
   pop();
 }
@@ -138,11 +140,34 @@ static bool callValue(Value callee, int argCount) {
         return call(AS_FUNCTION(callee), argCount);
 
       case OBJ_NATIVE: {
-        NativeFn native = AS_NATIVE(callee);
-        Value result = native(argCount, vm.stackTop - argCount);
+        ObjNative *native = AS_NATIVE(callee);
+        NativeFn func = native->function;
+        Value result = func(argCount, vm.stackTop - argCount);
+        bool had_error = false;
+#ifdef CC_FEATURES
+        if(IS_FERROR(result)) {
+          had_error = true;
+          ObjFunctionError* err = AS_FERROR(result);
+          if(err->sys_errno == 0) {
+            runtimeError(
+              "%s(): %s",
+              native->name->chars,
+              cc_ferror_to_string(err->ferror_id)
+            );
+          } else {
+            runtimeError(
+              "%s(): %s: %s",
+              native->name->chars,
+              cc_ferror_to_string(err->ferror_id),
+              strerror(err->sys_errno)
+            );
+          }
+          result = NIL_VAL;
+        }
+#endif
         vm.stackTop -= argCount + 1;
         push(result);
-        return true;
+        return !had_error;
       }
 
       default:

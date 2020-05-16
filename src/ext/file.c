@@ -15,6 +15,7 @@
 #include "../common.h"
 #include "../vm.h"
 
+#include "ferrors.h"
 
 /**
  * file_open(filename, mode)
@@ -36,7 +37,7 @@ Value cc_function_file_open(int arg_count, Value* args) {
     if(arg_count < 1 || arg_count > 2 || !IS_STRING(args[0])
        || (arg_count == 2 && !IS_STRING(args[1]))
     ) {
-        return NIL_VAL;
+        return FERROR_VAL(FE_INVALID_ARGUMENTS);
     }
     // We only support passing read, write, or both.  All other flags are ignored.
     bool is_reader = true;
@@ -47,8 +48,7 @@ Value cc_function_file_open(int arg_count, Value* args) {
     }
     // Can't do nothing.
     if(!is_reader && !is_writer) {
-        perror("file_open: not reader and not writer");
-        return BOOL_VAL(false);
+        return FERROR_VAL(FE_FOPEN_MUST_READ_OR_WRITE);
     }
     // In order to get the "open for reading and writing, creating but not
     // truncating" behavior we desire, we need to get a bit lower level.
@@ -60,8 +60,7 @@ Value cc_function_file_open(int arg_count, Value* args) {
     }
     int fd = open(AS_CSTRING(args[0]), open_mode);
     if(fd == -1) {
-        perror("file_open: open() failed");
-        return BOOL_VAL(false);
+        return FERROR_ERRNO_VAL(FE_FOPEN_OPEN_FAILED);
     }
     // Passing "w" to fopen causes a truncate, but passing it to fdopen does not.
     char* fopen_mode = is_reader && !is_writer
@@ -69,8 +68,7 @@ Value cc_function_file_open(int arg_count, Value* args) {
                     : (is_writer && !is_reader ? "w" : "r+");
     FILE* handle = fdopen(fd, fopen_mode);
     if(handle == NULL) {
-        perror("file_open: conversion from fd to handle failed");
-        return BOOL_VAL(false);
+        return FERROR_ERRNO_VAL(FE_FOPEN_FDOPEN_FAILED);
     }
 
     // POSIX file locks seem to be a better (more portable) choice than flock()
@@ -83,8 +81,7 @@ Value cc_function_file_open(int arg_count, Value* args) {
     };
     int flockres = fcntl(fileno(handle), F_SETLKW, &file_lock); // Set Lock, Wait (blocking)
     if(flockres != 0) {
-        perror("file_open: lock failed");
-        return BOOL_VAL(false);
+        return FERROR_ERRNO_VAL(FE_FOPEN_FLOCK_FAILED);
     }
     // Okay, we should be good to go now.
     return OBJ_VAL(newFileHandle(handle, &file_lock));

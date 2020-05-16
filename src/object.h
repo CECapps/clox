@@ -19,10 +19,11 @@
 #define IS_USERHASH(value)      isObjType(value, OBJ_USERHASH)
 #define IS_USERARRAY(value)     isObjType(value, OBJ_USERARRAY)
 #define IS_FILEHANDLE(value)    isObjType(value, OBJ_FILEHANDLE)
+#define IS_FERROR(value)        isObjType(value, OBJ_FERROR)
 #endif
 
 #define AS_FUNCTION(value)      ((ObjFunction*)AS_OBJ(value))
-#define AS_NATIVE(value)        (((ObjNative*)AS_OBJ(value))->function)
+#define AS_NATIVE(value)        ((ObjNative*)AS_OBJ(value))
 #define AS_STRING(value)        ((ObjString*)AS_OBJ(value))
 #define AS_CSTRING(value)       (((ObjString*)AS_OBJ(value))->chars)
 
@@ -30,6 +31,7 @@
 #define AS_USERHASH(value)      ((ObjUserHash*)AS_OBJ(value))
 #define AS_USERARRAY(value)     ((ObjUserArray*)AS_OBJ(value))
 #define AS_FILEHANDLE(value)    ((ObjFileHandle*)AS_OBJ(value))
+#define AS_FERROR(value)        ((ObjFunctionError*)AS_OBJ(value))
 #endif
 
 typedef enum {
@@ -40,6 +42,7 @@ typedef enum {
   OBJ_USERHASH,
   OBJ_USERARRAY,
   OBJ_FILEHANDLE,
+  OBJ_FERROR,
 #endif
 } ObjType;
 
@@ -64,9 +67,11 @@ typedef Value (*NativeFn)(int argCount, Value* args);
 typedef struct {
   Obj obj;
   NativeFn function;
+  ObjString* name;
 } ObjNative;
 
 #ifdef CC_FEATURES
+
 typedef struct {
   Obj obj;
   Table table;
@@ -82,6 +87,13 @@ typedef struct {
   FILE* handle;
   struct flock* lock;
 } ObjFileHandle;
+
+typedef struct {
+  Obj obj;
+  int ferror_id;
+  int sys_errno;
+} ObjFunctionError;
+
 #endif
 
 struct sObjString {
@@ -96,9 +108,10 @@ struct sObjString {
 ObjUserHash* newUserHash();
 ObjUserArray* newUserArray();
 ObjFileHandle* newFileHandle(FILE* handle, struct flock* lock);
+ObjFunctionError* newFunctionError(int ferror_id, int sys_errno);
 #endif
 ObjFunction* newFunction();
-ObjNative* newNative(NativeFn function);
+ObjNative* newNative(NativeFn function, ObjString* name);
 ObjString* takeString(char* chars, int length);
 ObjString* copyString(const char* chars, int length);
 

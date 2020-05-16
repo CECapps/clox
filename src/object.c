@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
+#include <errno.h>
 
 #include "memory.h"
 #include "object.h"
@@ -46,6 +47,13 @@ ObjFileHandle* newFileHandle(FILE* handle, struct flock* lock) {
   return fh;
 }
 
+ObjFunctionError* newFunctionError(int ferror_id, int sys_errno) {
+  ObjFunctionError* e = ALLOCATE_OBJ(ObjFunctionError, OBJ_FERROR);
+  e->ferror_id = ferror_id;
+  e->sys_errno = sys_errno;
+  return e;
+}
+
 #endif
 
 ObjFunction* newFunction() {
@@ -58,9 +66,10 @@ ObjFunction* newFunction() {
 }
 
 
-ObjNative* newNative(NativeFn function) {
+ObjNative* newNative(NativeFn function, ObjString* name) {
   ObjNative* native = ALLOCATE_OBJ(ObjNative, OBJ_NATIVE);
   native->function = function;
+  native->name = name;
   return native;
 }
 
