@@ -34,11 +34,10 @@
  *     lines delimited by things other than newlines (like CRLF) really annoying
  */
 Value cc_function_file_open(int arg_count, Value* args) {
-    if(arg_count < 1 || arg_count > 2 || !IS_STRING(args[0])
-       || (arg_count == 2 && !IS_STRING(args[1]))
-    ) {
-        return FERROR_VAL(FE_INVALID_ARGUMENTS);
-    }
+    if(arg_count < 1 || arg_count > 2) { return FERROR_VAL(FE_ARG_COUNT_1_2); }
+    if(!IS_STRING(args[0])) { return FERROR_VAL(FE_ARG_1_STRING); }
+    if(arg_count == 2 && !IS_STRING(args[1])) { return FERROR_VAL(FE_ARG_2_STRING); }
+
     // We only support passing read, write, or both.  All other flags are ignored.
     bool is_reader = true;
     bool is_writer = false;
@@ -95,26 +94,24 @@ Value cc_function_file_open(int arg_count, Value* args) {
  */
 Value cc_function_file_close(int arg_count, Value* args) {
     if(arg_count != 1 || !IS_FILEHANDLE(args[0])) {
-        return NIL_VAL;
+        return FERROR_VAL(FE_ARG_1_FH);
     }
+
     ObjFileHandle* fh = AS_FILEHANDLE(args[0]);
     // The close automatically flushes, but let's do that *before* the unlock.
     if(fflush(fh->handle) != 0) {
-        perror("file_close: flush failed");
-        return BOOL_VAL(false);
+        return FERROR_ERRNO_VAL(FE_FCLOSE_FLUSH_FAILED);
     }
     // Because POSIX locking is region based, it's best to just change the lock
     // type in the original lock data and pass it back through.
     fh->lock->l_type = F_UNLCK;
     if(fcntl(fileno(fh->handle), F_SETLK, fh->lock) != 0) {
-        perror("file_close: unlock failed");
-        return BOOL_VAL(false);
+        return FERROR_ERRNO_VAL(FE_FCLOSE_UNFLOCK_FAILED);
     }
     // Now we can finally actually close the handle.  Yes, it's safe to use
     // fclose() here instead of close().
     if(fclose(fh->handle) != 0) {
-        perror("file_close: fclose failed (lol)");
-        return BOOL_VAL(false);
+        return FERROR_ERRNO_VAL(FE_FCLOSE_FCLOSE_FAILED_LOL);
     }
     return BOOL_VAL(true);
 }
@@ -128,7 +125,7 @@ Value cc_function_file_close(int arg_count, Value* args) {
  */
 Value cc_function_file_read_line(int arg_count, Value* args) {
     if(arg_count != 1 || !IS_FILEHANDLE(args[0])) {
-        return NIL_VAL;
+        return FERROR_VAL(FE_ARG_1_FH);
     }
     ObjFileHandle* fh = AS_FILEHANDLE(args[0]);
 
@@ -145,9 +142,8 @@ Value cc_function_file_read_line(int arg_count, Value* args) {
         // but instead we got an error.  This can happen if we are at EOF and
         // we tried unsuccessfully to read, or if there was some sort of error.
         // The EOF check at the top should have protected us from fuckery...
-        perror("file_read_line: getline failed");
         free(buffer);
-        return BOOL_VAL(false);
+        return FERROR_VAL(FE_FREAD_GETLINE_FAILED);
     }
     ObjString* str = copyString(buffer, bufflen);
     free(buffer);
@@ -162,7 +158,7 @@ Value cc_function_file_read_line(int arg_count, Value* args) {
  */
 Value cc_function_file_at_eof(int arg_count, Value* args) {
     if(arg_count != 1 || !IS_FILEHANDLE(args[0])) {
-        return NIL_VAL;
+        return FERROR_VAL(FE_ARG_1_FH);
     }
 
     return BOOL_VAL(feof(AS_FILEHANDLE(args[0])->handle) != 0);

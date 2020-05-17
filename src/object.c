@@ -143,7 +143,7 @@ void printObject(Value value) {
       break;
 
     case OBJ_NATIVE:
-      printf("<native fn>");
+      printf("<native fn %s>", AS_NATIVE(value)->name->chars);
       break;
 
     case OBJ_STRING:
@@ -157,6 +157,14 @@ void printObject(Value value) {
 
     case OBJ_USERARRAY:
       printf("<user array>");
+      break;
+
+    case OBJ_FILEHANDLE:
+      printf("<filehandle #%d>", fileno(AS_FILEHANDLE(value)->handle));
+      break;
+
+    case OBJ_FERROR:
+      printf("<function error %d, errno %d>", AS_FERROR(value)->ferror_id, AS_FERROR(value)->sys_errno);
       break;
 #endif
 

@@ -1,23 +1,15 @@
-#include <stdarg.h>
-#include <stdio.h>
 #include <string.h>
-#include <time.h>
 #include <stdlib.h>
 #include <sys/time.h>
 #include <math.h>
-#include <fenv.h>
 
 #include "../common.h"
-#include "../compiler.h"
-#include "../debug.h"
-#include "../object.h"
-#include "../memory.h"
-#include "../table.h"
 #include "../vm.h"
 
 #include "./number.h"
 #include "./string.h"
 #include "./file.h"
+#include "./ferrors.h"
 
 Value cc_function_debug_dump_stack(int arg_count, Value* args) {
   int counter = 0;
@@ -55,7 +47,7 @@ Value cc_function_environment_getvar(int arg_count, Value* args) {
 
 Value cc_function_val_is_empty(int arg_count, Value* args) {
     if(arg_count != 1) {
-        return NIL_VAL;
+        return FERROR_VAL(FE_ARG_COUNT_1);
     }
 
     if(IS_NIL(args[0])) {
@@ -67,17 +59,23 @@ Value cc_function_val_is_empty(int arg_count, Value* args) {
     } else if(IS_NUMBER(args[0]) && AS_NUMBER(args[0]) == 0.0) {
         // Only zero is considered empty.
         return BOOL_VAL(true);
+    } else if(IS_USERARRAY(args[0]) && AS_USERARRAY(args[0])->inner.count == 0) {
+        // Empty arrays are empty.
+        return BOOL_VAL(true);
+    } else if(IS_USERHASH(args[0]) && AS_USERHASH(args[0])->table.count == 0) {
+        // Empty hashes are considered empty.
+        return BOOL_VAL(true);
     }
 
-    // Only the three above things are considered empty.  All other values are
-    // considered not empty, including booleans and function/class types.
+    // Everything else is not empty, including but not limited to functions,
+    // classes, NaN, filehandles, booleans (yes, false is not empty), etc.
     return BOOL_VAL(false);
 }
 
 
 Value cc_function_val_is_string(int arg_count, Value* args) {
     if(arg_count != 1) {
-        return NIL_VAL;
+        return FERROR_VAL(FE_ARG_COUNT_1);
     }
     return BOOL_VAL(IS_STRING(args[0]));
 }
@@ -85,7 +83,7 @@ Value cc_function_val_is_string(int arg_count, Value* args) {
 
 Value cc_function_val_is_number(int arg_count, Value* args) {
     if(arg_count != 1) {
-        return NIL_VAL;
+        return FERROR_VAL(FE_ARG_COUNT_1);
     }
     return BOOL_VAL(IS_NUMBER(args[0]));
 }
@@ -93,15 +91,39 @@ Value cc_function_val_is_number(int arg_count, Value* args) {
 
 Value cc_function_val_is_boolean(int arg_count, Value* args) {
     if(arg_count != 1) {
-        return NIL_VAL;
+        return FERROR_VAL(FE_ARG_COUNT_1);
     }
     return BOOL_VAL(IS_BOOL(args[0]));
 }
 
 
+Value cc_function_val_is_array(int arg_count, Value* args) {
+    if(arg_count != 1) {
+        return FERROR_VAL(FE_ARG_COUNT_1);
+    }
+    return BOOL_VAL(IS_USERARRAY(args[0]));
+}
+
+
+Value cc_function_val_is_hash(int arg_count, Value* args) {
+    if(arg_count != 1) {
+        return FERROR_VAL(FE_ARG_COUNT_1);
+    }
+    return BOOL_VAL(IS_USERHASH(args[0]));
+}
+
+
+Value cc_function_val_is_filehandle(int arg_count, Value* args) {
+    if(arg_count != 1) {
+        return FERROR_VAL(FE_ARG_COUNT_1);
+    }
+    return BOOL_VAL(IS_FILEHANDLE(args[0]));
+}
+
+
 Value cc_function_val_is_nan(int arg_count, Value* args) {
     if(arg_count != 1) {
-        return NIL_VAL;
+        return FERROR_VAL(FE_ARG_COUNT_1);
     }
     if(!IS_NUMBER(args[0])) {
         return BOOL_VAL(false);
@@ -112,7 +134,7 @@ Value cc_function_val_is_nan(int arg_count, Value* args) {
 
 Value cc_function_val_is_infinity(int arg_count, Value* args) {
     if(arg_count != 1) {
-        return NIL_VAL;
+        return FERROR_VAL(FE_ARG_COUNT_1);
     }
     if(!IS_NUMBER(args[0])) {
         return BOOL_VAL(false);
@@ -130,6 +152,9 @@ void cc_register_ext_functions() {
   defineNative("val_is_string",         cc_function_val_is_string);
   defineNative("val_is_number",         cc_function_val_is_number);
   defineNative("val_is_boolean",        cc_function_val_is_boolean);
+  defineNative("val_is_array",          cc_function_val_is_array);
+  defineNative("val_is_hash",           cc_function_val_is_hash);
+  defineNative("val_is_filehandle",     cc_function_val_is_filehandle);
   defineNative("val_is_nan",            cc_function_val_is_nan);
   defineNative("val_is_infinity",       cc_function_val_is_infinity);
 

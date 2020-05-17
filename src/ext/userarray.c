@@ -8,6 +8,7 @@
 #include "../vm.h"
 
 #include "number.h"
+#include "ferrors.h"
 
 
 void ua_grow(ObjUserArray* ua, int new_capacity) {
@@ -74,14 +75,6 @@ static struct UA_Legal_Range ua_normalize_index_range(
 }
 
 
-Value cc_function_val_is_userarray(int arg_count, Value* args) {
-    if(arg_count != 1) {
-        return NIL_VAL;
-    }
-    return BOOL_VAL( IS_USERARRAY(args[0]) );
-}
-
-
 Value cc_function_ar_create(int arg_count, Value* args) {
     return OBJ_VAL(newUserArray());
 }
@@ -94,9 +87,9 @@ Value cc_function_ar_create(int arg_count, Value* args) {
  * - returns true on success
  */
 Value cc_function_ar_set(int arg_count, Value* args) {
-    if(arg_count != 3 || !IS_USERARRAY(args[0]) || !IS_NUMBER(args[1])) {
-        return NIL_VAL;
-    }
+    if(arg_count != 3) { return FERROR_VAL(FE_ARG_COUNT_3); }
+    if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
+    if(!IS_STRING(args[1])) { return FERROR_VAL(FE_ARG_2_STRING); }
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
     int16_t target_index = ua_normalize_index(ua, AS_NUMBER(args[1]), false);
@@ -124,9 +117,9 @@ Value cc_function_ar_set(int arg_count, Value* args) {
  * - returns the previous value of the given key on success, which may be nil
  */
 Value cc_function_ar_update(int arg_count, Value* args) {
-    if(arg_count != 3 || !IS_USERARRAY(args[0]) || !IS_NUMBER(args[1])) {
-        return NIL_VAL;
-    }
+    if(arg_count != 3) { return FERROR_VAL(FE_ARG_COUNT_3); }
+    if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
+    if(!IS_STRING(args[1])) { return FERROR_VAL(FE_ARG_2_STRING); }
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
     int16_t target_index = ua_normalize_index(ua, AS_NUMBER(args[1]), false);
@@ -154,9 +147,10 @@ Value cc_function_ar_update(int arg_count, Value* args) {
  * - returns true otherwise
  */
 Value cc_function_ar_has(int arg_count, Value* args) {
-    if(arg_count != 2 || !IS_USERARRAY(args[0]) || !IS_NUMBER(args[1])) {
-        return NIL_VAL;
-    }
+    if(arg_count != 2) { return FERROR_VAL(FE_ARG_COUNT_2); }
+    if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
+    if(!IS_NUMBER(args[1])) { return FERROR_VAL(FE_ARG_2_NUMBER); }
+
     ObjUserArray* ua = AS_USERARRAY(args[0]);
     int16_t target_index = ua_normalize_index(ua, AS_NUMBER(args[1]), true);
     if(target_index < 0) {
@@ -178,9 +172,9 @@ Value cc_function_ar_has(int arg_count, Value* args) {
  * - returns the value of the given key on success, which may still be nil.
  */
 Value cc_function_ar_get(int arg_count, Value* args) {
-    if(arg_count != 2 || !IS_USERARRAY(args[0]) || !IS_NUMBER(args[1])) {
-        return NIL_VAL;
-    }
+    if(arg_count != 2) { return FERROR_VAL(FE_ARG_COUNT_2); }
+    if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
+    if(!IS_NUMBER(args[1])) { return FERROR_VAL(FE_ARG_2_NUMBER); }
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
     int16_t target_index = ua_normalize_index(ua, AS_NUMBER(args[1]), true);
@@ -199,9 +193,10 @@ Value cc_function_ar_get(int arg_count, Value* args) {
  *   after the key and count are normalized to fit within the bounds of the array.
  */
 Value cc_function_ar_remove(int arg_count, Value* args) {
-    if(arg_count < 2 || arg_count > 4 || !IS_USERARRAY(args[0]) || !IS_NUMBER(args[1])) {
-        return NIL_VAL;
-    }
+    if(arg_count < 2 || arg_count > 3) { return FERROR_VAL(FE_ARG_COUNT_2_3); }
+    if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
+    if(!IS_NUMBER(args[1])) { return FERROR_VAL(FE_ARG_2_NUMBER); }
+    if(arg_count == 3 && !IS_NUMBER(args[2])) { return FERROR_VAL(FE_ARG_3_NUMBER); }
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
     double raw_range = 1;
@@ -240,9 +235,9 @@ Value cc_function_ar_remove(int arg_count, Value* args) {
  * - returns the number of entries in the array, which may be zero
  */
 Value cc_function_ar_count(int arg_count, Value* args) {
-    if(arg_count != 1 || !IS_USERARRAY(args[0])) {
-        return NIL_VAL;
-    }
+    if(arg_count != 1) { return FERROR_VAL(FE_ARG_COUNT_1); }
+    if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
+
     return NUMBER_VAL(AS_USERARRAY(args[0])->inner.count);
 }
 
@@ -253,9 +248,9 @@ Value cc_function_ar_count(int arg_count, Value* args) {
  * - returns true on success
  */
 Value cc_function_ar_clear(int arg_count, Value* args) {
-    if(arg_count != 1 || !IS_USERARRAY(args[0])) {
-        return NIL_VAL;
-    }
+    if(arg_count != 1) { return FERROR_VAL(FE_ARG_COUNT_1); }
+    if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
+
     ObjUserArray* ua = AS_USERARRAY(args[0]);
     freeValueArray(&ua->inner);
     initValueArray(&ua->inner);
@@ -269,9 +264,8 @@ Value cc_function_ar_clear(int arg_count, Value* args) {
  * - returns the new number of elements in the array
  */
 Value cc_function_ar_push(int arg_count, Value* args) {
-    if(arg_count != 2 || !IS_USERARRAY(args[0])) {
-        return NIL_VAL;
-    }
+    if(arg_count != 2) { return FERROR_VAL(FE_ARG_COUNT_2); }
+    if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
     int16_t target_index = ua->inner.count;
@@ -290,9 +284,8 @@ Value cc_function_ar_push(int arg_count, Value* args) {
  * - returns the new number of elements in the array
  */
 Value cc_function_ar_unshift(int arg_count, Value* args) {
-    if(arg_count != 2 || !IS_USERARRAY(args[0])) {
-        return NIL_VAL;
-    }
+    if(arg_count != 2) { return FERROR_VAL(FE_ARG_COUNT_2); }
+    if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
     // We're moving all of the elements up by one, then setting the passed
@@ -316,9 +309,8 @@ Value cc_function_ar_unshift(int arg_count, Value* args) {
  * - returns the value of the last element of the array, after it has been removed
  */
 Value cc_function_ar_pop(int arg_count, Value* args) {
-    if(arg_count != 1 || !IS_USERARRAY(args[0])) {
-        return NIL_VAL;
-    }
+    if(arg_count != 1) { return FERROR_VAL(FE_ARG_COUNT_1); }
+    if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
 
@@ -339,9 +331,8 @@ Value cc_function_ar_pop(int arg_count, Value* args) {
  * - returns the value of the first element in the array, after it has been removed
  */
 Value cc_function_ar_shift(int arg_count, Value* args) {
-    if(arg_count != 1 || !IS_USERARRAY(args[0])) {
-        return NIL_VAL;
-    }
+    if(arg_count != 1) { return FERROR_VAL(FE_ARG_COUNT_1); }
+    if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
 
@@ -366,9 +357,8 @@ Value cc_function_ar_shift(int arg_count, Value* args) {
  * - returns a new identical copy of the original array
  */
 Value cc_function_ar_clone(int arg_count, Value* args) {
-    if(arg_count != 1 || !IS_USERARRAY(args[0])) {
-        return NIL_VAL;
-    }
+    if(arg_count != 1) { return FERROR_VAL(FE_ARG_COUNT_1); }
+    if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
     ObjUserArray* new_ua = newUserArray();
@@ -393,9 +383,9 @@ Value cc_function_ar_clone(int arg_count, Value* args) {
  *   after the starting index, which is the start of the array unless specified.
  */
 Value cc_function_ar_find(int arg_count, Value* args) {
-    if(arg_count < 2 || arg_count > 3 || !IS_USERARRAY(args[0])) {
-        return NIL_VAL;
-    }
+    if(arg_count < 2 || arg_count > 3) { return FERROR_VAL(FE_ARG_COUNT_2_3); }
+    if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
+    if(arg_count == 3 && !IS_NUMBER(args[2])) { return FERROR_VAL(FE_ARG_3_NUMBER); }
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
     if(ua->inner.count == 0) {
@@ -427,9 +417,10 @@ Value cc_function_ar_find(int arg_count, Value* args) {
  *   from the source array, in the original order.
  */
 Value cc_function_ar_chunk(int arg_count, Value* args) {
-    if(arg_count < 2 || !IS_USERARRAY(args[0]) || !IS_NUMBER(args[1])) {
-        return NIL_VAL;
-    }
+    if(arg_count != 2) { return FERROR_VAL(FE_ARG_COUNT_2); }
+    if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
+    if(!IS_STRING(args[1])) { return FERROR_VAL(FE_ARG_2_STRING); }
+
     ObjUserArray* ua = AS_USERARRAY(args[0]);
 
     int16_t chunk_size = (int16_t)AS_NUMBER(args[1]);
@@ -476,9 +467,8 @@ Value cc_function_ar_chunk(int arg_count, Value* args) {
  * - returns a copy of the original array with the values shuffled around by RNG
  */
 Value cc_function_ar_shuffle(int arg_count, Value* args) {
-    if(arg_count != 1 || !IS_USERARRAY(args[0])) {
-        return NIL_VAL;
-    }
+    if(arg_count != 1) { return FERROR_VAL(FE_ARG_COUNT_1); }
+    if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
     ObjUserArray* target_array = newUserArray();
@@ -504,9 +494,8 @@ Value cc_function_ar_shuffle(int arg_count, Value* args) {
  * - returns a copy of the original array with the values reversed
  */
 Value cc_function_ar_reverse(int arg_count, Value* args) {
-    if(arg_count != 1 || !IS_USERARRAY(args[0])) {
-        return NIL_VAL;
-    }
+    if(arg_count != 1) { return FERROR_VAL(FE_ARG_COUNT_1); }
+    if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
     ObjUserArray* target_array = newUserArray();
@@ -529,9 +518,10 @@ Value cc_function_ar_reverse(int arg_count, Value* args) {
  *   count is passed, all remaining array elements are copied.
  */
 Value cc_function_ar_slice(int arg_count, Value* args) {
-    if(arg_count < 2 || arg_count > 3 || !IS_USERARRAY(args[0]) || !IS_NUMBER(args[1])) {
-        return NIL_VAL;
-    }
+    if(arg_count < 2 || arg_count > 3) { return FERROR_VAL(FE_ARG_COUNT_2_3); }
+    if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
+    if(!IS_NUMBER(args[1])) { return FERROR_VAL(FE_ARG_2_NUMBER); }
+    if(arg_count == 3 && !IS_NUMBER(args[2])) { return FERROR_VAL(FE_ARG_3_NUMBER); }
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
     double raw_range = 0;
@@ -564,9 +554,10 @@ Value cc_function_ar_slice(int arg_count, Value* args) {
  *   larger than the user array, nils are inserted before inserting the donor.
  */
 Value cc_function_ar_insert(int arg_count, Value* args) {
-    if(arg_count < 3 || !IS_USERARRAY(args[0]) || !IS_NUMBER(args[1]) || !IS_USERARRAY(args[2])) {
-        return NIL_VAL;
-    }
+    if(arg_count != 3) { return FERROR_VAL(FE_ARG_COUNT_3); }
+    if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
+    if(!IS_NUMBER(args[1])) { return FERROR_VAL(FE_ARG_2_NUMBER); }
+    if(!IS_USERARRAY(args[2])) { return FERROR_VAL(FE_ARG_3_ARRAY); }
 
     ObjUserArray* left = AS_USERARRAY(args[0]);
     ObjUserArray* right = AS_USERARRAY(args[2]);
@@ -619,9 +610,9 @@ Value cc_function_ar_insert(int arg_count, Value* args) {
  * - returns a copy of the original with the elements from donor array appended
  */
 Value cc_function_ar_append(int arg_count, Value* args) {
-    if(arg_count != 2 || !IS_USERARRAY(args[0]) || !IS_USERARRAY(args[1])) {
-        return NIL_VAL;
-    }
+    if(arg_count != 2) { return FERROR_VAL(FE_ARG_COUNT_2); }
+    if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
+    if(!IS_USERARRAY(args[1])) { return FERROR_VAL(FE_ARG_2_ARRAY); }
 
     ObjUserArray* left = AS_USERARRAY(args[0]);
     ObjUserArray* right = AS_USERARRAY(args[1]);
@@ -643,9 +634,9 @@ Value cc_function_ar_append(int arg_count, Value* args) {
  * - returns a copy of the original with the elements from donor array prepended
  */
 Value cc_function_ar_prepend(int arg_count, Value* args) {
-    if(arg_count != 2 || !IS_USERARRAY(args[0]) || !IS_USERARRAY(args[1])) {
-        return NIL_VAL;
-    }
+    if(arg_count != 2) { return FERROR_VAL(FE_ARG_COUNT_2); }
+    if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
+    if(!IS_USERARRAY(args[1])) { return FERROR_VAL(FE_ARG_2_ARRAY); }
 
     // lol
     Value swap = args[0];
@@ -999,9 +990,8 @@ static void quicksort_recursive_callback(int min_index, int max_index, Value* va
  * - returns a copy of the original array with the elements sorted
  */
 Value cc_function_ar_sort(int arg_count, Value* args) {
-    if(arg_count != 1 || !IS_USERARRAY(args[0])) {
-        return NIL_VAL;
-    }
+    if(arg_count != 1) { return FERROR_VAL(FE_ARG_COUNT_1); }
+    if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
     ObjUserArray* target_array = newUserArray();
@@ -1030,9 +1020,9 @@ Value cc_function_ar_sort(int arg_count, Value* args) {
  *   if zero was returned instead.
  */
 Value cc_function_ar_sort_callback(int arg_count, Value* args) {
-    if(arg_count != 2 || !IS_USERARRAY(args[0]) || !IS_FUNCTION(args[1])) {
-        return NIL_VAL;
-    }
+    if(arg_count != 2) { return FERROR_VAL(FE_ARG_COUNT_2); }
+    if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
+    if(!IS_FUNCTION(args[1])) { return FERROR_VAL(FE_ARG_2_FUNCTION); }
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
     ObjUserArray* target_array = newUserArray();
@@ -1061,9 +1051,9 @@ Value cc_function_ar_sort_callback(int arg_count, Value* args) {
  * - returns a string of all array elements joined together with the glue string
  */
 Value cc_function_ar_join(int arg_count, Value* args) {
-    if(arg_count != 2 || !IS_USERARRAY(args[0])|| !IS_STRING(args[1])) {
-        return NIL_VAL;
-    }
+    if(arg_count != 2) { return FERROR_VAL(FE_ARG_COUNT_2); }
+    if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
+    if(!IS_STRING(args[1])) { return FERROR_VAL(FE_ARG_2_STRING); }
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
     ObjString* glue = AS_STRING(args[1]);
@@ -1118,9 +1108,9 @@ Value cc_function_ar_join(int arg_count, Value* args) {
  * - returns non-true otherwise
  */
 Value cc_function_ar_filter(int arg_count, Value* args) {
-    if(arg_count != 2 || !IS_USERARRAY(args[0]) || !IS_FUNCTION(args[1])) {
-        return NIL_VAL;
-    }
+    if(arg_count != 2) { return FERROR_VAL(FE_ARG_COUNT_2); }
+    if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
+    if(!IS_FUNCTION(args[1])) { return FERROR_VAL(FE_ARG_2_FUNCTION); }
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
     ObjFunction* callback = AS_FUNCTION(args[1]);
@@ -1151,9 +1141,9 @@ Value cc_function_ar_filter(int arg_count, Value* args) {
  * - returns the new value that should be placed at the offset
  */
 Value cc_function_ar_map(int arg_count, Value* args) {
-    if(arg_count != 2 || !IS_USERARRAY(args[0]) || !IS_FUNCTION(args[1])) {
-        return NIL_VAL;
-    }
+    if(arg_count != 2) { return FERROR_VAL(FE_ARG_COUNT_2); }
+    if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
+    if(!IS_FUNCTION(args[1])) { return FERROR_VAL(FE_ARG_2_FUNCTION); }
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
     ObjFunction* callback = AS_FUNCTION(args[1]);
@@ -1183,9 +1173,9 @@ Value cc_function_ar_map(int arg_count, Value* args) {
  *   the user if this is the last index.
  */
 Value cc_function_ar_reduce(int arg_count, Value* args) {
-    if(arg_count != 2 || !IS_USERARRAY(args[0]) || !IS_FUNCTION(args[1])) {
-        return NIL_VAL;
-    }
+    if(arg_count != 2) { return FERROR_VAL(FE_ARG_COUNT_2); }
+    if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
+    if(!IS_FUNCTION(args[1])) { return FERROR_VAL(FE_ARG_2_FUNCTION); }
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
     ObjFunction* callback = AS_FUNCTION(args[1]);
@@ -1204,8 +1194,6 @@ Value cc_function_ar_reduce(int arg_count, Value* args) {
 
 
 void cc_register_ext_userarray() {
-
-    defineNative("val_is_userarray" ,cc_function_val_is_userarray);
 
     defineNative("ar_create",     cc_function_ar_create);
 

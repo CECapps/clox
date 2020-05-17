@@ -8,6 +8,7 @@
 #include "../vm.h"
 
 #include "userarray.h"
+#include "ferrors.h"
 
 static int16_t st_normalize_index(ObjString* str, double raw_index) {
   // ObjString's length is held in an int, which is apparently 16 bits?
@@ -105,7 +106,7 @@ static Value str_indexof_core(ObjString* haystack, ObjString* needle, int16_t st
  */
 Value cc_function_string_length(int arg_count, Value* args) {
   if(!IS_STRING(args[0])) {
-    return NIL_VAL;
+    return FERROR_VAL(FE_ARG_1_STRING);
   }
   return NUMBER_VAL( AS_STRING(args[0])->length );
 }
@@ -121,14 +122,15 @@ Value cc_function_string_length(int arg_count, Value* args) {
  *   must be inside the legal range.
  */
 Value cc_function_string_substring(int arg_count, Value* args) {
-  if(arg_count < 2 || arg_count > 3 || !IS_STRING(args[0]) || !IS_NUMBER(args[1]))  {
-    return NIL_VAL;
-  }
+  if(arg_count < 2 || arg_count > 3) { return FERROR_VAL(FE_ARG_COUNT_2_3); }
+  if(!IS_STRING(args[0])) { return FERROR_VAL(FE_ARG_1_STRING); }
+  if(!IS_NUMBER(args[1])) { return FERROR_VAL(FE_ARG_2_NUMBER); }
+  if(arg_count == 3 && !IS_NUMBER(args[2])) { return FERROR_VAL(FE_ARG_3_NUMBER); }
 
   ObjString* str = AS_STRING(args[0]);
 
   double raw_range = 0;
-  if(arg_count == 3 && IS_NUMBER(args[2])) {
+  if(arg_count == 3) {
     raw_range = AS_NUMBER(args[2]);
   }
   struct ST_Legal_Range legal = st_normalize_index_range(str, AS_NUMBER(args[1]), raw_range);
@@ -160,18 +162,19 @@ Value cc_function_string_substring(int arg_count, Value* args) {
  *   any remaining delimiters.  Limit must be > 0.
  */
 Value cc_function_string_split(int arg_count, Value* args) {
-  if(arg_count < 2 || !IS_STRING(args[0]) || !IS_STRING(args[1])) {
-    return NIL_VAL;
-  }
+  if(arg_count < 2 || arg_count > 3) { return FERROR_VAL(FE_ARG_COUNT_2_3); }
+  if(!IS_STRING(args[0])) { return FERROR_VAL(FE_ARG_1_STRING); }
+  if(!IS_STRING(args[1])) { return FERROR_VAL(FE_ARG_2_STRING); }
+  if(arg_count == 3 && !IS_NUMBER(args[2])) { return FERROR_VAL(FE_ARG_3_NUMBER); }
 
   bool has_limit = false;
   int16_t limit = 1;
-  if(arg_count == 3 && IS_NUMBER(args[2])) {
+  if(arg_count == 3) {
     has_limit = true;
     limit = (int16_t)AS_NUMBER(args[2]);
   }
   if(limit < 1) {
-    return NIL_VAL;
+    return FERROR_VAL(FE_STRING_SPLIT_NEGATIVE_LIMIT);
   }
 
   ObjString* haystack = AS_STRING(args[0]);
@@ -219,11 +222,10 @@ Value cc_function_string_split(int arg_count, Value* args) {
  *   Returns false if the substring could not be located.
  */
 Value cc_function_string_index_of(int arg_count, Value* args) {
-  if(arg_count < 2 || arg_count > 3 || !IS_STRING(args[0]) || !IS_STRING(args[1])
-     || (arg_count == 3 && !IS_NUMBER(args[2]))
-  ) {
-    return NIL_VAL;
-  }
+  if(arg_count < 2 || arg_count > 3) { return FERROR_VAL(FE_ARG_COUNT_2_3); }
+  if(!IS_STRING(args[0])) { return FERROR_VAL(FE_ARG_1_STRING); }
+  if(!IS_STRING(args[1])) { return FERROR_VAL(FE_ARG_2_STRING); }
+  if(arg_count == 3 && !IS_NUMBER(args[2])) { return FERROR_VAL(FE_ARG_3_NUMBER); }
 
   ObjString* haystack = AS_STRING(args[0]);
   ObjString* needle = AS_STRING(args[1]);
@@ -246,13 +248,13 @@ Value cc_function_string_index_of(int arg_count, Value* args) {
 /**
  * string_contains(haystack_string, needle_string)
  */
-Value cc_function_string_contains(int arg_count, Value* args) {}
+Value cc_function_string_contains(int arg_count, Value* args) { return NIL_VAL; }
 
 
 /**
  * string_starts_with(haystack_string, needle_string)
  */
-Value cc_function_string_starts_with(int arg_count, Value* args) {}
+Value cc_function_string_starts_with(int arg_count, Value* args) { return NIL_VAL; }
 
 
 /**
@@ -264,11 +266,10 @@ Value cc_function_string_starts_with(int arg_count, Value* args) {}
  *   Returns false if the substring could not be located.
  */
 Value cc_function_string_right_index_of(int arg_count, Value* args) {
-  if(arg_count < 2 || arg_count > 3 || !IS_STRING(args[0]) || !IS_STRING(args[1])
-     || (arg_count == 3 && !IS_NUMBER(args[2]))
-  ) {
-    return NIL_VAL;
-  }
+  if(arg_count < 2 || arg_count > 3) { return FERROR_VAL(FE_ARG_COUNT_2_3); }
+  if(!IS_STRING(args[0])) { return FERROR_VAL(FE_ARG_1_STRING); }
+  if(!IS_STRING(args[1])) { return FERROR_VAL(FE_ARG_2_STRING); }
+  if(arg_count == 3 && !IS_NUMBER(args[2])) { return FERROR_VAL(FE_ARG_3_NUMBER); }
 
   ObjString* haystack = AS_STRING(args[0]);
   ObjString* needle = AS_STRING(args[1]);
@@ -306,7 +307,7 @@ Value cc_function_string_right_index_of(int arg_count, Value* args) {
 /**
  * string_ends_with(haystack_string, needle_string)
  */
-Value cc_function_string_ends_with(int arg_count, Value* args) {}
+Value cc_function_string_ends_with(int arg_count, Value* args) { return NIL_VAL; }
 
 
 /**
@@ -316,9 +317,9 @@ Value cc_function_string_ends_with(int arg_count, Value* args) {}
  * - returns true if the given extended POSIX regex matches the given string
  */
 Value cc_function_string_regex_matches(int arg_count, Value* args) {
-  if(arg_count != 2 || !IS_STRING(args[0]) || !IS_STRING(args[1])) {
-    return NIL_VAL;
-  }
+  if(arg_count != 2 ) { return FERROR_VAL(FE_ARG_COUNT_2); }
+  if(!IS_STRING(args[0])) { return FERROR_VAL(FE_ARG_1_STRING); }
+  if(!IS_STRING(args[1])) { return FERROR_VAL(FE_ARG_2_STRING); }
 
   regex_t regex_handle;
   int compile_success = regcomp(
@@ -327,7 +328,17 @@ Value cc_function_string_regex_matches(int arg_count, Value* args) {
     REG_EXTENDED | REG_NOSUB // Use POSIX extended regexes, and don't capture
   );
   if(compile_success != 0) {
-    // @FIXME report errors
+    int error_buffer_size = regerror(compile_success, &regex_handle, NULL, 0);
+    char* error_buffer = ALLOCATE(char, error_buffer_size + 1);
+    regerror(compile_success, &regex_handle, error_buffer, error_buffer_size);
+    error_buffer[error_buffer_size] = '\0';
+    fprintf(
+      stderr,
+      "string_regex_matches(): regex compile error code %d: \"%s\"\n",
+      compile_success,
+      error_buffer
+    );
+    FREE_ARRAY(char, error_buffer, error_buffer_size + 1);
     return NIL_VAL;
   }
 
@@ -349,97 +360,97 @@ Value cc_function_string_regex_matches(int arg_count, Value* args) {
 /**
  * string_replace(haystack_string, needle_string, replace_string)
  */
-Value cc_function_string_replace(int arg_count, Value* args) {}
+Value cc_function_string_replace(int arg_count, Value* args) { return NIL_VAL; }
 
 
 /**
  * string_splice(recipient_string, index, donor_string)
  */
-Value cc_function_string_splice(int arg_count, Value* args) {}
+Value cc_function_string_splice(int arg_count, Value* args) { return NIL_VAL; }
 
 
 /**
  * string_repeat(source_string, count)
  */
-Value cc_function_string_repeat(int arg_count, Value* args) {}
+Value cc_function_string_repeat(int arg_count, Value* args) { return NIL_VAL; }
 
 
 /**
  * string_reverse(source_string)
  */
-Value cc_function_string_reverse(int arg_count, Value* args) {}
+Value cc_function_string_reverse(int arg_count, Value* args) { return NIL_VAL; }
 
 
 /**
  * string_shuffle(source_string)
  */
-Value cc_function_string_shuffle(int arg_count, Value* args) {}
+Value cc_function_string_shuffle(int arg_count, Value* args) { return NIL_VAL; }
 
 
 /**
  * string_pad_left(source_string, padding_string, minimum_width)
  */
-Value cc_function_string_pad_left(int arg_count, Value* args) {}
+Value cc_function_string_pad_left(int arg_count, Value* args) { return NIL_VAL; }
 
 
 /**
  * string_pad_right(source_string, padding_string, minimum_width)
  */
-Value cc_function_string_pad_right(int arg_count, Value* args) {}
+Value cc_function_string_pad_right(int arg_count, Value* args) { return NIL_VAL; }
 
 
 /**
  * string_center(source_string, padding_string, minimum_width)
  */
-Value cc_function_string_center(int arg_count, Value* args) {}
+Value cc_function_string_center(int arg_count, Value* args) { return NIL_VAL; }
 
 
 /**
  * string_escape_dq(source_string)
  */
-Value cc_function_string_escape_dq(int arg_count, Value* args) {}
+Value cc_function_string_escape_dq(int arg_count, Value* args) { return NIL_VAL; }
 
 
 /**
  * string_chunk(source_string, chunk_size, separator_string = "\n")
  */
-Value cc_function_string_chunk(int arg_count, Value* args) {}
+Value cc_function_string_chunk(int arg_count, Value* args) { return NIL_VAL; }
 
 
 /**
  * string_trim(source_string, chars_to_replace = whitespace)
  */
-Value cc_function_string_trim(int arg_count, Value* args) {}
+Value cc_function_string_trim(int arg_count, Value* args) { return NIL_VAL; }
 
 
 /**
  * string_trim_left(source_string, chars_to_replace = whitespace)
  */
-Value cc_function_string_trim_left(int arg_count, Value* args) {}
+Value cc_function_string_trim_left(int arg_count, Value* args) { return NIL_VAL; }
 
 
 /**
  * string_trim_right(source_string, chars_to_replace = whitespace)
  */
-Value cc_function_string_trim_right(int arg_count, Value* args) {}
+Value cc_function_string_trim_right(int arg_count, Value* args) { return NIL_VAL; }
 
 
 /**
  * stringify(value)
  */
-Value cc_function_stringify(int arg_count, Value* args) {}
+Value cc_function_stringify(int arg_count, Value* args) { return NIL_VAL; }
 
 
 /**
  * char_to_integer(string)
  */
-Value cc_function_char_to_integer(int arg_count, Value* args) {}
+Value cc_function_char_to_integer(int arg_count, Value* args) { return NIL_VAL; }
 
 
 /**
  * char_from_integer(number)
  */
-Value cc_function_char_from_integer(int arg_count, Value* args) {}
+Value cc_function_char_from_integer(int arg_count, Value* args) { return NIL_VAL; }
 
 
 void cc_register_ext_string() {

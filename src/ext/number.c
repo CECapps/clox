@@ -6,20 +6,22 @@
 
 #include "../memory.h"
 #include "../vm.h"
+#include "./ferrors.h"
 
 
 Value cc_function_number_absolute(int arg_count, Value* args) {
   if (arg_count != 1 || !IS_NUMBER(args[0])) {
-    return NIL_VAL;
+    return FERROR_VAL(FE_ARG_1_NUMBER);
   }
   return NUMBER_VAL(fabs(AS_NUMBER(args[0])));
 }
 
 
 Value cc_function_number_remainder(int arg_count, Value* args) {
-  if (arg_count != 2 || !IS_NUMBER(args[0]) || !IS_NUMBER(args[1])) {
-    return NIL_VAL;
-  }
+  if (arg_count != 2) { return FERROR_VAL(FE_ARG_COUNT_2); }
+  if (!IS_NUMBER(args[0])) { return FERROR_VAL(FE_ARG_1_NUMBER); }
+  if (!IS_NUMBER(args[1])) { return FERROR_VAL(FE_ARG_2_NUMBER); }
+
   // Problem: We're trying to get the integer remainder of an integer division,
   // but the data types are doubles that may contain decimal numbers.
   // Solution: trunc() is used to round the value stored in the doubles towards
@@ -42,7 +44,7 @@ Value cc_function_number_remainder(int arg_count, Value* args) {
 
 Value cc_function_number_minimum(int arg_count, Value* args) {
   if (arg_count < 1) {
-    return NIL_VAL;
+    return FERROR_VAL(FE_ARG_GTE_1);
   }
   double minimum_value = INFINITY;
   for (int i = 0; i < arg_count; i++) {
@@ -56,7 +58,7 @@ Value cc_function_number_minimum(int arg_count, Value* args) {
 
 Value cc_function_number_maximum(int arg_count, Value* args) {
   if (arg_count < 1) {
-    return NIL_VAL;
+    return FERROR_VAL(FE_ARG_GTE_1);
   }
   double maximum_value = -INFINITY;
   for (int i = 0; i < arg_count; i++) {
@@ -70,7 +72,7 @@ Value cc_function_number_maximum(int arg_count, Value* args) {
 
 Value cc_function_number_floor(int arg_count, Value* args) {
   if (arg_count != 1 || !IS_NUMBER(args[0])) {
-    return NIL_VAL;
+    return FERROR_VAL(FE_ARG_1_NUMBER);
   }
   return NUMBER_VAL(floor(AS_NUMBER(args[0])));
 }
@@ -78,23 +80,24 @@ Value cc_function_number_floor(int arg_count, Value* args) {
 
 Value cc_function_number_ceiling(int arg_count, Value* args) {
   if (arg_count != 1 || !IS_NUMBER(args[0])) {
-    return NIL_VAL;
+    return FERROR_VAL(FE_ARG_1_NUMBER);
   }
   return NUMBER_VAL(ceil(AS_NUMBER(args[0])));
 }
 
 
 Value cc_function_number_round(int arg_count, Value* args) {
-  if (arg_count < 1 || !IS_NUMBER(args[0]) || arg_count > 2) {
-    return NIL_VAL;
-  }
+  if (arg_count < 1 || !IS_NUMBER(args[0])) { return FERROR_VAL(FE_ARG_1_NUMBER); }
+  if (arg_count == 2 && !IS_NUMBER(args[1])) { return FERROR_VAL(FE_ARG_2_NUMBER); }
+  if (arg_count > 2) { return FERROR_VAL(FE_ARG_COUNT_1_2); }
+
   // We'll optionally be passed a precision argument, which may be a positive
   // or negative integer.  Our stdlib functions only operate on integers.
   // We can simulate the requested precision by shifting the decimal place in
   // the original number before the round, then moving it back after the round.
   int precision = 0;
   double original_value = AS_NUMBER(args[0]);
-  if (arg_count == 2 && IS_NUMBER(args[1])) {
+  if (arg_count == 2) {
     // This rounds the precision towards zero and then slams it into a 16bit
     // int. Not gonna care in the slightest about possible precision lost.
     precision = (int)trunc(AS_NUMBER(args[1]));
@@ -121,13 +124,11 @@ Value cc_function_number_round(int arg_count, Value* args) {
 
 
 Value cc_function_number_clamp(int arg_count, Value* args) {
-  if (arg_count != 3
-      || !IS_NUMBER(args[0])
-      || !IS_NUMBER(args[1])
-      || !IS_NUMBER(args[2])
-     ) {
-    return NIL_VAL;
-  }
+  if (arg_count != 3) { return FERROR_VAL(FE_ARG_COUNT_3); }
+  if (!IS_NUMBER(args[0])) { return FERROR_VAL(FE_ARG_1_NUMBER); }
+  if (!IS_NUMBER(args[1])) { return FERROR_VAL(FE_ARG_2_NUMBER); }
+  if (!IS_NUMBER(args[2])) { return FERROR_VAL(FE_ARG_3_NUMBER); }
+
   double value = AS_NUMBER(args[0]);
   double minimum = AS_NUMBER(args[1]);
   double maximum = AS_NUMBER(args[2]);
@@ -143,7 +144,7 @@ Value cc_function_number_clamp(int arg_count, Value* args) {
 
 Value cc_function_number_to_string(int arg_count, Value* args) {
   if (arg_count != 1 || !IS_NUMBER(args[0])) {
-    return NIL_VAL;
+    return FERROR_VAL(FE_ARG_1_NUMBER);
   }
   double number = AS_NUMBER(args[0]);
   // Oh how I loathe manual memory management!
@@ -154,14 +155,16 @@ Value cc_function_number_to_string(int arg_count, Value* args) {
   sprintf(buffer, "%.15g", number);
   buffer[buffer_size] = '\0';
   // takeString converts our memory-managed string value into an interned
-  // ObjString, freeing it up if it was a dupe.
-  return OBJ_VAL(takeString(buffer, buffer_size));
+  // ObjString, freeing it up if it was a dupe and using it directly otherwise.
+  // (That is, there is no need to free the buffer here.)
+  ObjString* str = takeString(buffer, buffer_size);
+  return OBJ_VAL(str);
 }
 
 
 Value cc_function_number_to_hex_string(int arg_count, Value* args) {
   if (arg_count != 1 || !IS_NUMBER(args[0])) {
-    return NIL_VAL;
+    return FERROR_VAL(FE_ARG_1_NUMBER);
   }
   double raw_number = AS_NUMBER(args[0]);
   // The method we're going to use to hexify this number can't take negatives.
@@ -175,10 +178,11 @@ Value cc_function_number_to_hex_string(int arg_count, Value* args) {
   // 64-bit integer to store it.
   uint64_t number = (uint64_t)trunc(raw_number);
 
-  // Same buffer size trick as number_to_string
+  // Same buffer size + allocation trick as number_to_string
   int buffer_size = snprintf(NULL, 0, "%lx", number);
   char *buffer = ALLOCATE(char, 1 + buffer_size);
   sprintf(buffer, "%lx", number);
+  buffer[buffer_size] = '\0';
   return OBJ_VAL(takeString(buffer, buffer_size));
 }
 
@@ -207,9 +211,10 @@ double random_int(double left, double right) {
 
 
 Value cc_function_number_random(int arg_count, Value* args) {
-  if(arg_count != 2 || !IS_NUMBER(args[0]) || !IS_NUMBER(args[1])) {
-    return NIL_VAL;
-  }
+  if (arg_count != 2) { return FERROR_VAL(FE_ARG_COUNT_2); }
+  if (!IS_NUMBER(args[0])) { return FERROR_VAL(FE_ARG_1_NUMBER); }
+  if (!IS_NUMBER(args[1])) { return FERROR_VAL(FE_ARG_2_NUMBER); }
+
   return NUMBER_VAL( random_int( AS_NUMBER(args[0]), AS_NUMBER(args[1]) ) );
 }
 
