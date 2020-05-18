@@ -76,7 +76,6 @@ void initVM() {
   vm.objects = NULL;
   initTable(&vm.globals);
   initTable(&vm.strings);
-  initTable(&vm.the_hashtable);
 
   defineNative("clock", clockNative);
 

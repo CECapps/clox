@@ -24,7 +24,6 @@ typedef struct {
   Value* stackTop;
   Table globals;
   Table strings;
-  Table the_hashtable;
 
   Obj* objects;
 } VM;

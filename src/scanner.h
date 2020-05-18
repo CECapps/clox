@@ -36,6 +36,7 @@ typedef enum {
   TOKEN_EXIT,
   TOKEN_ECHO,
   TOKEN_TRANSCLUDE,
+  TOKEN_UNVAR,
 #endif
 
   TOKEN_ERROR,

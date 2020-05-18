@@ -621,6 +621,7 @@ ParseRule rules[] = {
   { NULL,     NULL,    PREC_NONE },       // TOKEN_EXIT
   { NULL,     NULL,    PREC_NONE },       // TOKEN_ECHO - same as TOKEN_PRINT
   { NULL,     NULL,    PREC_NONE },       // TOKEN_TRANSCLUDE
+  { NULL,     NULL,    PREC_NONE },       // TOKEN_UNVAR - same as TOKEN_VAR
 #endif
   { NULL,     NULL,    PREC_NONE },       // TOKEN_ERROR
   { NULL,     NULL,    PREC_NONE },       // TOKEN_EOF
@@ -922,6 +923,7 @@ static void synchronize() {
       case TOKEN_CLASS:
       case TOKEN_FUN:
       case TOKEN_VAR:
+      case TOKEN_UNVAR:
       case TOKEN_FOR:
       case TOKEN_IF:
       case TOKEN_WHILE:
@@ -943,6 +945,8 @@ static void declaration() {
   if (match(TOKEN_FUN)) {
     funDeclaration();
   } else if (match(TOKEN_VAR)) {
+    varDeclaration();
+  } else if (match(TOKEN_UNVAR)) {
     varDeclaration();
   } else {
     statement();
