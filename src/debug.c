@@ -5,18 +5,26 @@
 
 
 void disassembleChunk(Chunk* chunk, const char* name) {
-  printf("== Disassemble Chunk: %s ==\n", name); // Variation
+  printf("== Disassemble Chunk: %s ==\n", name);
 
   for (int offset = 0; offset < chunk->count;) {
     offset = disassembleInstruction(chunk, offset);
   }
-  printf("== %s: done ==\n", name); // Variation
+
+  printf("\nConstants:\n");
+  for (int i = 0; i < chunk->constants.count; i++) {
+    printf("\t%d: ", i);
+    printValue(chunk->constants.values[i]);
+    printf("\n");
+  }
+
+  printf("== %s: done ==\n", name);
 }
 
 
 static int constantInstruction(const char* name, Chunk* chunk, int offset) {
   uint8_t constant = chunk->code[offset + 1];
-  printf("%-16s %4d '", name, constant);
+  printf("%-16s C%4d '", name, constant);
   printValue(chunk->constants.values[constant]);
   printf("'\n");
 
@@ -39,7 +47,7 @@ static int simpleInstruction(const char* name, int offset) {
 
 static int byteInstruction(const char* name, Chunk* chunk, int offset) {
   uint8_t slot = chunk->code[offset + 1];
-  printf("%-16s %4d\n", name, slot);
+  printf("%-16s b%4d\n", name, slot);
   return offset + 2;
 }
 
@@ -47,7 +55,7 @@ static int byteInstruction(const char* name, Chunk* chunk, int offset) {
 static int jumpInstruction(const char* name, int sign, Chunk* chunk, int offset) {
   uint16_t jump = (uint16_t)(chunk->code[offset + 1] << 8);
   jump |= chunk->code[offset + 2];
-  printf("%-16s %4d -> %d\n", name, offset, offset + 3 + sign * jump);
+  printf("%-16s o%4d -> %d\n", name, offset, offset + 3 + sign * jump);
   return offset + 3;
 }
 

@@ -276,3 +276,43 @@ Token scanToken() {
 
   return errorToken("Unexpected character.");
 }
+
+const char* token_types[] = {
+  // Single-character tokens. (0-10)
+  "TOKEN_LEFT_PAREN", "TOKEN_RIGHT_PAREN",
+  "TOKEN_LEFT_BRACE", "TOKEN_RIGHT_BRACE",
+  "TOKEN_COMMA", "TOKEN_DOT", "TOKEN_MINUS", "TOKEN_PLUS",
+  "TOKEN_SEMICOLON", "TOKEN_SLASH", "TOKEN_STAR",
+
+  // One or two character tokens. (11-18)
+  "TOKEN_BANG", "TOKEN_BANG_EQUAL",
+  "TOKEN_EQUAL", "TOKEN_EQUAL_EQUAL",
+  "TOKEN_GREATER", "TOKEN_GREATER_EQUAL",
+  "TOKEN_LESS", "TOKEN_LESS_EQUAL",
+
+  // Literals. (19-21)
+  "TOKEN_IDENTIFIER", "TOKEN_STRING", "TOKEN_NUMBER",
+
+  // Keywords. (22-37)
+  "TOKEN_AND", "TOKEN_CLASS", "TOKEN_ELSE", "TOKEN_FALSE",
+  "TOKEN_FOR", "TOKEN_FUN", "TOKEN_IF", "TOKEN_NIL", "TOKEN_OR",
+  "TOKEN_PRINT", "TOKEN_RETURN", "TOKEN_SUPER", "TOKEN_THIS",
+  "TOKEN_TRUE", "TOKEN_VAR", "TOKEN_WHILE",
+
+#ifdef CC_FEATURES
+// ******************************REMEMBER******************************
+// You MUST add each new token to the precedence list in the compiler!
+// You MUST add each new token to the token list in scanner.c!
+// ******************************REMEMBER******************************
+  "TOKEN_EXIT",
+  "TOKEN_ECHO",
+  "TOKEN_TRANSCLUDE",
+  "TOKEN_UNVAR",
+#endif
+
+  "TOKEN_ERROR",
+  "TOKEN_EOF"
+};
+const char* token_type_to_string(TokenType type) {
+  return token_types[type];
+}

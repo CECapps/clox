@@ -81,11 +81,18 @@ Chunk* compilingChunk;
 
 
 static Chunk* currentChunk() {
+#ifdef DEBUG_COMPILE_TRACE
+  //printf("\t currentChunk() = %p \n", &current->function->chunk);
+#endif
   return &current->function->chunk;
 }
 
 
 static void errorAt(Token* token, const char* message) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t errorAt(token=TokenType:%s message=\"%s\")\n", token_type_to_string(token->type), message);
+#endif
+
   if (parser.panicMode) return;
   parser.panicMode = true;
 
@@ -105,16 +112,25 @@ static void errorAt(Token* token, const char* message) {
 
 
 static void error(const char* message) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t error(message=\"%s\")\n", message);
+#endif
   errorAt(&parser.previous, message);
 }
 
 
 static void errorAtCurrent(const char* message) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t errorAtCurrent(message=\"%s\")\n", message);
+#endif
   errorAt(&parser.current, message);
 }
 
 
 static void advance() {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t advance()\n");
+#endif
   parser.previous = parser.current;
 
   for (;;) {
@@ -123,11 +139,20 @@ static void advance() {
 
     errorAtCurrent(parser.current.start);
   }
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t\tnext token is %s\n", token_type_to_string(parser.current.type));
+#endif
 }
 
 
 static void consume(TokenType type, const char* message) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t consume(type=%s message=\"%s\")\n", token_type_to_string(type), message);
+#endif
   if (parser.current.type == type) {
+#ifdef DEBUG_COMPILE_TRACE
+    printf("\t\tconsumed!\n");
+#endif
     advance();
     return;
   }
@@ -137,11 +162,21 @@ static void consume(TokenType type, const char* message) {
 
 
 static bool check(TokenType type) {
-  return parser.current.type == type;
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t check(type=%s)\n", token_type_to_string(type));
+#endif
+  bool res = parser.current.type == type;
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t\t%s\n", res ? "MATCH!" : "no match");
+#endif
+  return res;
 }
 
 
 static bool match(TokenType type) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t match(type=%s)\n", token_type_to_string(type));
+#endif
   if (!check(type)) return false;
   advance();
   return true;
@@ -149,17 +184,26 @@ static bool match(TokenType type) {
 
 
 static void emitByte(uint8_t byte) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t emitByte(byte=%d)\n", byte);
+#endif
   writeChunk(currentChunk(), byte, parser.previous.line);
 }
 
 
 static void emitBytes(uint8_t byte1, uint8_t byte2) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t emitBytes(byte1=%d byte2=%d)\n", byte1, byte2);
+#endif
   emitByte(byte1);
   emitByte(byte2);
 }
 
 
 static void emitLoop(int loopStart) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t emitLoop(loopStart=%d)\n\t\tbytes = offset1, offset2\n", loopStart);
+#endif
   emitByte(OP_LOOP);
 
   int offset = currentChunk()->count - loopStart + 2;
@@ -171,6 +215,9 @@ static void emitLoop(int loopStart) {
 
 
 static int emitJump(uint8_t instruction) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t emitJump(instruction=%d)\n\t\tbytes = instruction, offset1, offset2\n", instruction);
+#endif
   emitByte(instruction);
   emitByte(0xff);
   emitByte(0xff);
@@ -179,28 +226,48 @@ static int emitJump(uint8_t instruction) {
 
 
 static void emitReturn() {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t emitReturn()\n\t\tbytes = nil, return\n");
+#endif
   emitByte(OP_NIL);
   emitByte(OP_RETURN);
 }
 
 
 static uint8_t makeConstant(Value value) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t makeConstant(value=ValueType:%d)\n", value.type);
+  printf("\t\tvalue=");
+  printValue(value);
+  printf("\n");
+#endif
   int constant = addConstant(currentChunk(), value);
   if (constant > UINT8_MAX) {
     error("Too many constants in one chunk.");
     return 0;
   }
-
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t\tconstant index = %d\n", constant);
+#endif
   return (uint8_t)constant;
 }
 
 
 static void emitConstant(Value value) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t emitConstant(value=ValueType:%d)\n", value.type);
+  printf("\t\tvalue=");
+  printValue(value);
+  printf("\n\t\tbytes = OP_CONSTANT, result of makeConstant\n");
+#endif
   emitBytes(OP_CONSTANT, makeConstant(value));
 }
 
 
 static void patchJump(int offset) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t patchJump(offset=%d)\n", offset);
+#endif
   // -2 to adjust for the bytecode for the jump offset itself.
   int jump = currentChunk()->count - offset - 2;
 
@@ -214,12 +281,24 @@ static void patchJump(int offset) {
 
 
 static ObjFunction* endCompiler() {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t endCompiler()\n");
+#endif
   emitReturn();
   ObjFunction* function = current->function;
 
 #ifdef DEBUG_PRINT_CODE
   if (!parser.hadError) {
     disassembleChunk(currentChunk(), function->name != NULL ? function->name->chars : "<script>");
+    printf("== ^ locals ^ ==\n");
+    for(int i = 1; i < current->localCount; i++) {
+      Local loc = current->locals[i];
+      char name[loc.name.length];
+      memcpy(name, loc.name.start, loc.name.length);
+      name[loc.name.length] = '\0';
+      printf("\t%d (strlen=%d): %s\n", i, loc.name.length, name);
+    }
+    printf("== end locals ==\n");
   }
 #endif
 
@@ -229,11 +308,17 @@ static ObjFunction* endCompiler() {
 
 
 static void beginScope() {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t beginScope() depth=%d\n", current->scopeDepth + 1);
+#endif
   current->scopeDepth++;
 }
 
 
 static void endScope() {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t endScope() depth=%d\n\t\tbytes = pops\n", current->scopeDepth - 1);
+#endif
   current->scopeDepth--;
 
   while (current->localCount > 0 &&
@@ -245,6 +330,9 @@ static void endScope() {
 
 
 static void initCompiler(Compiler* compiler, FunctionType type) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t initCompiler(compiler=Compiler#%p type=%d)\n", compiler, type);
+#endif
   compiler->enclosing = current;
   compiler->function = NULL;
   compiler->type = type;
@@ -278,23 +366,45 @@ static void parsePrecedence(Precedence precedence);
 
 
 static uint8_t identifierConstant(Token* name) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t identifierConstant(name=TokenType:%s)\n", token_type_to_string(name->type));
+#endif
+
   return makeConstant(OBJ_VAL(copyString(name->start, name->length)));
 }
 
 
 static bool identifiersEqual(Token* a, Token* b) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf(
+    "\t identifiersEqual(a=TokenType:%s b=TokenType:%s)\n",
+    token_type_to_string(a->type),
+    token_type_to_string(b->type)
+  );
+#endif
   if (a->length != b->length) return false;
   return memcmp(a->start, b->start, a->length) == 0;
 }
 
 
 static int resolveLocal(Compiler* compiler, Token* name) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf(
+    "\t resolveLocal(compiler=Compiler#%p name=TokenType:%s)\n",
+    compiler,
+    token_type_to_string(name->type)
+  );
+#endif
+
   for (int i = compiler->localCount - 1; i >= 0; i--) {
     Local* local = &compiler->locals[i];
     if (identifiersEqual(name, &local->name)) {
       if (local->depth == -1) {
         error("Cannot read local variable in its own initializer.");
       }
+#ifdef DEBUG_COMPILE_TRACE
+      printf("\t\tfound token at index %d\n", i);
+#endif
       return i;
     }
   }
@@ -304,6 +414,14 @@ static int resolveLocal(Compiler* compiler, Token* name) {
 
 
 static void addLocal(Token name) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf(
+    "\t addLocal(name=TokenType:%s)\n\t\tlocal index = %d\n",
+    token_type_to_string(name.type),
+    current->localCount
+  );
+#endif
+
   if (current->localCount == UINT8_COUNT) {
     error("Too many local variables in function.");
     return;
@@ -316,14 +434,26 @@ static void addLocal(Token name) {
 
 
 static void declareVariable() {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t declareVariable()\n");
+#endif
+
   // Global variables are implicitly declared.
-  if (current->scopeDepth == 0) return;
+  if (current->scopeDepth == 0) {
+#ifdef DEBUG_COMPILE_TRACE
+    printf("\t\tbase scope, skipping local lookup\n");
+#endif
+    return;
+  }
 
   Token* name = &parser.previous;
 
   for (int i = current->localCount - 1; i >= 0; i--) {
     Local* local = &current->locals[i];
     if (local->depth != -1 && local->depth < current->scopeDepth) {
+#ifdef DEBUG_COMPILE_TRACE
+      printf("\t\tfound local at index %d\n", i);
+#endif
       break;
     }
 
@@ -337,32 +467,64 @@ static void declareVariable() {
 
 
 static uint8_t parseVariable(const char* errorMessage) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t parseVariable(errorMessage=\"%s\")\n", errorMessage);
+#endif
+
   consume(TOKEN_IDENTIFIER, errorMessage);
 
   declareVariable();
-  if (current->scopeDepth > 0) return 0;
+  if (current->scopeDepth > 0) {
+#ifdef DEBUG_COMPILE_TRACE
+    printf("\t\tnested scope, skipping call to identifierConstant\n");
+#endif
+    return 0;
+  }
 
   return identifierConstant(&parser.previous);
 }
 
 
 static void markInitialized() {
-  if (current->scopeDepth == 0) return;
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t markInitialized()\n");
+#endif
+
+  if (current->scopeDepth == 0) {
+#ifdef DEBUG_COMPILE_TRACE
+    printf("\t\tbase scope, skipping depth manipulation of local index %d\n", current->localCount);
+#endif
+    return;
+  }
   current->locals[current->localCount - 1].depth = current->scopeDepth;
 }
 
 
 static void defineVariable(uint8_t global) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t defineVariable(global=%d)\n", global);
+#endif
+
   if (current->scopeDepth > 0) {
+#ifdef DEBUG_COMPILE_TRACE
+    printf("\t\tnested scope, marking initialized\n");
+#endif
     markInitialized();
     return;
   }
 
+#ifdef DEBUG_COMPILE_TRACE
+    printf("\t\tbytes = OP_DEFINE_GLOBAL, global index\n");
+#endif
   emitBytes(OP_DEFINE_GLOBAL, global);
 }
 
 
 static uint8_t argumentList() {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t argumentList()\n");
+#endif
+
   uint8_t argCount = 0;
   if (!check(TOKEN_RIGHT_PAREN)) {
     do {
@@ -380,6 +542,10 @@ static uint8_t argumentList() {
 
 
 static void and_(bool canAssign) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t and_(canAssign=%s)\n", canAssign ? "true" : "false");
+#endif
+
   int endJump = emitJump(OP_JUMP_IF_FALSE);
 
   emitByte(OP_POP);
@@ -390,6 +556,10 @@ static void and_(bool canAssign) {
 
 
 static void binary(bool canAssign) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t binary(canAssign=%s)\n", canAssign ? "true" : "false");
+#endif
+
   // Remember the operator.
   TokenType operatorType = parser.previous.type;
 
@@ -416,12 +586,20 @@ static void binary(bool canAssign) {
 
 
 static void call(bool canAssign) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t call(canAssign=%s)\n", canAssign ? "true" : "false");
+#endif
+
   uint8_t argCount = argumentList();
   emitBytes(OP_CALL, argCount);
 }
 
 
 static void literal(bool canAssign) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t literal(canAssign=%s)\n", canAssign ? "true" : "false");
+#endif
+
   switch (parser.previous.type) {
     case TOKEN_FALSE: emitByte(OP_FALSE); break;
     case TOKEN_NIL:   emitByte(OP_NIL); break;
@@ -433,18 +611,30 @@ static void literal(bool canAssign) {
 
 
 static void grouping(bool canAssign) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t grouping(canAssign=%s)\n", canAssign ? "true" : "false");
+#endif
+
   expression();
   consume(TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
 }
 
 
 static void number(bool canAssign) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t number(canAssign=%s)\n", canAssign ? "true" : "false");
+#endif
+
   double value = strtod(parser.previous.start, NULL);
   emitConstant(NUMBER_VAL(value));
 }
 
 
 static void or_(bool canAssign) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t or_(canAssign=%s)\n", canAssign ? "true" : "false");
+#endif
+
   int elseJump = emitJump(OP_JUMP_IF_FALSE);
   int endJump = emitJump(OP_JUMP);
 
@@ -458,21 +648,27 @@ static void or_(bool canAssign) {
 #ifdef CC_FEATURES
 
 static bool isHex(char c) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t isHex(char=%c)\n", c);
+#endif
+
   return (c >= 'a' && c <= 'f') ||
          (c >= 'A' && c <= 'F') ||
          (c >= '0' && c <= '9');
 }
 
 static void string(bool canAssign) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t string(canAssign=%s)\n", canAssign ? "true" : "false");
+#endif
+
   // The new string is guaranteed to be at least as long as the previous string,
   // plus one for the null byte terminator.  If there is any interpolation,
   // this allocation will be larger than needed.  This should not matter.  I think.
   char *new_str = ALLOCATE(char, parser.previous.length + 1);
   int new_index = 0;
 
-  // If single-quoted strings are enabled, only perform backslash interpolation
-  // on double-quoted strings.  If backslash interpolation is disabled, this
-  // code doesn't even get run.
+  // Only perform backslash interpolation on double-quoted strings.
   bool in_double_quotes = parser.previous.start[0] == '"';
 
   // The index starts at 1 to cut off the opening quote, and ends at length - 1
@@ -496,11 +692,7 @@ static void string(bool canAssign) {
               if(isHex(hex_left) && isHex(hex_right)) {
                 // Now that we know the next two characters are hex, glue them back
                 // together into a new string as expected by strtol.
-                // This is super duper hacky.
-                char lolhex[3];
-                lolhex[0] = hex_left;
-                lolhex[1] = hex_right;
-                lolhex[2] = '\0';
+                char lolhex[3] = { hex_left, hex_right, '\0' };
                 // The value returned by strtol given two hex digits will never
                 // exceed the storage capacity of c (char), so this is safe.
                 c = strtol(lolhex, NULL, 16);
@@ -530,6 +722,10 @@ static void string(bool canAssign) {
 
 // The +1 and -2 adjust for the quotes in the string stored in parser.previous
 static void string(bool canAssign) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t string(canAssign=%s)\n", canAssign ? "true" : "false");
+#endif
+
   emitConstant(OBJ_VAL(copyString(parser.previous.start + 1,
                                   parser.previous.length - 2)));
 }
@@ -537,6 +733,14 @@ static void string(bool canAssign) {
 #endif
 
 static void namedVariable(Token name, bool canAssign) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf(
+    "\t namedVariable(name=TokenType:%s canAssign=%s)\n",
+    token_type_to_string(name.type),
+    canAssign ? "true" : "false"
+  );
+#endif
+
   uint8_t getOp, setOp;
   int arg = resolveLocal(current, &name);
   if (arg != -1) {
@@ -550,19 +754,33 @@ static void namedVariable(Token name, bool canAssign) {
 
   if (canAssign && match(TOKEN_EQUAL)) {
     expression();
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t\tbytes = setOp, index\n");
+#endif
     emitBytes(setOp, (uint8_t)arg);
   } else {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t\tbytes = getOp, index\n");
+#endif
     emitBytes(getOp, (uint8_t)arg);
   }
 }
 
 
 static void variable(bool canAssign) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t variable(canAssign=%s)\n", canAssign ? "true" : "false");
+#endif
+
   namedVariable(parser.previous, canAssign);
 }
 
 
 static void unary(bool canAssign) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t unary(canAssign=%s)\n", canAssign ? "true" : "false");
+#endif
+
   TokenType operatorType = parser.previous.type;
 
   // Compile the operand.
@@ -628,6 +846,10 @@ ParseRule rules[] = {
 };
 
 static void parsePrecedence(Precedence precedence) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t parsePrecedence(precedence=%d)\n", precedence);
+#endif
+
   advance();
   ParseFn prefixRule = getRule(parser.previous.type)->prefix;
   if (prefixRule == NULL) {
@@ -651,16 +873,28 @@ static void parsePrecedence(Precedence precedence) {
 
 
 static ParseRule* getRule(TokenType type) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t getRule(type=%s)\n", token_type_to_string(type));
+#endif
+
   return &rules[type];
 }
 
 
 static void expression() {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t expression()\n");
+#endif
+
   parsePrecedence(PREC_ASSIGNMENT);
 }
 
 
 static void block() {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t block()\n");
+#endif
+
   while (!check(TOKEN_RIGHT_BRACE) && !check(TOKEN_EOF)) {
     declaration();
   }
@@ -670,6 +904,10 @@ static void block() {
 
 
 static void function(FunctionType type) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t function(type=%d)\n", type);
+#endif
+
   Compiler compiler;
   initCompiler(&compiler, type);
   beginScope();
@@ -700,6 +938,10 @@ static void function(FunctionType type) {
 
 
 static void funDeclaration() {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t funDeclaration()\n");
+#endif
+
   uint8_t global = parseVariable("Expect function name.");
   markInitialized();
   function(TYPE_FUNCTION);
@@ -708,6 +950,10 @@ static void funDeclaration() {
 
 
 static void varDeclaration() {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t varDeclaration()\n");
+#endif
+
   uint8_t global = parseVariable("Expect variable name.");
 
   if (match(TOKEN_EQUAL)) {
@@ -718,10 +964,17 @@ static void varDeclaration() {
   consume(TOKEN_SEMICOLON, "Expect ';' after variable declaration.");
 
   defineVariable(global);
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t\t-> varDeclaration done\n");
+#endif
 }
 
 
 static void expressionStatement() {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t expressionStatement()\n");
+#endif
+
   expression();
   consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
   emitByte(OP_POP);
@@ -729,6 +982,10 @@ static void expressionStatement() {
 
 
 static void forStatement() {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t forStatement()\n");
+#endif
+
   beginScope();
 
   consume(TOKEN_LEFT_PAREN, "Expect '(' after 'for'.");
@@ -779,6 +1036,10 @@ static void forStatement() {
 
 
 static void ifStatement() {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t ifStatement()\n");
+#endif
+
   consume(TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
   expression();
   consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
@@ -798,6 +1059,10 @@ static void ifStatement() {
 
 
 static void printStatement() {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t printStatement()\n");
+#endif
+
   expression();
   consume(TOKEN_SEMICOLON, "Expect ';' after value.");
   emitByte(OP_PRINT);
@@ -806,6 +1071,10 @@ static void printStatement() {
 #ifdef CC_FEATURES
 
 static void echoStatement() {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t echoStatement()\n");
+#endif
+
   uint8_t arg_count = 0;
   do {
     expression();
@@ -821,6 +1090,10 @@ static void echoStatement() {
 #endif
 
 static void returnStatement() {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t returnStatement()\n");
+#endif
+
   if (current->type == TYPE_SCRIPT) {
     error("Cannot return from top-level code.");
   }
@@ -836,6 +1109,10 @@ static void returnStatement() {
 
 
 static void whileStatement() {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t whileStatement()\n");
+#endif
+
   int loopStart = currentChunk()->count;
 
   consume(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
@@ -856,6 +1133,10 @@ static void whileStatement() {
 #ifdef CC_FEATURES
 
 static void exitStatement() {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t exitStatement()\n");
+#endif
+
   if (match(TOKEN_SEMICOLON)) {
     emitByte(OP_NIL);
     emitByte(OP_EXIT);
@@ -868,6 +1149,10 @@ static void exitStatement() {
 
 
 static void transcludeStatement() {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t transcludeStatement()\n");
+#endif
+
   // transclude "filename";
   advance();
   string(false);
@@ -914,6 +1199,10 @@ static void transcludeStatement() {
 #endif
 
 static void synchronize() {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t synchronize()\n");
+#endif
+
   parser.panicMode = false;
 
   while (parser.current.type != TOKEN_EOF) {
@@ -942,6 +1231,10 @@ static void synchronize() {
 
 
 static void declaration() {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t declaration()\n");
+#endif
+
   if (match(TOKEN_FUN)) {
     funDeclaration();
   } else if (match(TOKEN_VAR)) {
@@ -957,6 +1250,10 @@ static void declaration() {
 
 
 static void statement() {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t statement()\n");
+#endif
+
   if (match(TOKEN_PRINT)) {
     printStatement();
   } else if (match(TOKEN_FOR)) {
@@ -986,6 +1283,10 @@ static void statement() {
 
 
 ObjFunction* compile(const char* source, int starting_line) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t compile(source=length:%ld, starting_line=%d)\n", strlen(source), starting_line);
+#endif
+
   initScanner(source, starting_line);
   Compiler compiler;
   initCompiler(&compiler, TYPE_SCRIPT);
@@ -1005,6 +1306,10 @@ ObjFunction* compile(const char* source, int starting_line) {
 
 #ifdef CC_FEATURES
 void transclude(char* source) {
+#ifdef DEBUG_COMPILE_TRACE
+  printf("\t transclude(source=length:%ld)\n", strlen(source));
+#endif
+
   Scanner old_scanner = getCurrentScanner();
   Token old_current_token = parser.current;
   initScanner(source, 1);

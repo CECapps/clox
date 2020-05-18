@@ -32,6 +32,7 @@ typedef enum {
 #ifdef CC_FEATURES
 // ******************************REMEMBER******************************
 // You MUST add each new token to the precedence list in the compiler!
+// You MUST add each new token to the token list in scanner.c!
 // ******************************REMEMBER******************************
   TOKEN_EXIT,
   TOKEN_ECHO,
@@ -56,6 +57,7 @@ Token scanToken();
 #ifdef CC_FEATURES
 Scanner getCurrentScanner();
 void replaceCurrentScanner(Scanner new_scanner);
+const char* token_type_to_string(TokenType type);
 #endif
 
 #endif
