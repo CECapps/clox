@@ -248,9 +248,14 @@ this is also **deferred**.
 > research the choices they made, and try to figure out why they did things
 > that way.
 
-**Deferred**.  I'll be looking up what PHP does first, and then possibly look
-at Java.  I should also look at Perl, but I'm not sure I want to look at C that
-has been created by Perl developers.
+Ran across this by accident.
+https://nullprogram.com/blog/2018/07/31/
+
+Task: Add the string hash function `prospector32s` and benchmark both speed and
+collisions.  Low collisions are the most important metric.  String hashing is
+a rare thing compared to looking up string keys in a hash.
+
+Priority: medium
 
 ### Challenge 3
 > Write a handful of different benchmark programs to validate our hash table
