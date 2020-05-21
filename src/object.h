@@ -85,7 +85,7 @@ typedef struct {
 typedef struct {
   Obj obj;
   FILE* handle;
-  struct flock* lock;
+  struct flock lock;
 } ObjFileHandle;
 
 typedef struct {
@@ -107,7 +107,7 @@ struct sObjString {
 #ifdef CC_FEATURES
 ObjUserHash* newUserHash();
 ObjUserArray* newUserArray();
-ObjFileHandle* newFileHandle(FILE* handle, struct flock* lock);
+ObjFileHandle* newFileHandle(FILE* handle, struct flock lock);
 ObjFunctionError* newFunctionError(int ferror_id, int sys_errno);
 #endif
 ObjFunction* newFunction();

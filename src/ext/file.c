@@ -57,7 +57,7 @@ Value cc_function_file_open(int arg_count, Value* args) {
     if(is_writer) {
         open_mode = open_mode | O_CREAT;
     }
-    int fd = open(AS_CSTRING(args[0]), open_mode);
+    int fd = open(AS_CSTRING(args[0]), open_mode, 0644);
     if(fd == -1) {
         return FERROR_ERRNO_VAL(FE_FOPEN_OPEN_FAILED);
     }
@@ -76,14 +76,14 @@ Value cc_function_file_open(int arg_count, Value* args) {
         .l_whence = SEEK_SET, // POSIX file locking is range based, so...
         .l_start  = 0,        // ...start our lock at the start of the file...
         .l_len    = 0,        // ...and extend it through the end.  0 is magic.
-        .l_pid    = getpid()
+        .l_pid    = 0
     };
     int flockres = fcntl(fileno(handle), F_SETLKW, &file_lock); // Set Lock, Wait (blocking)
     if(flockres != 0) {
         return FERROR_ERRNO_VAL(FE_FOPEN_FLOCK_FAILED);
     }
     // Okay, we should be good to go now.
-    return OBJ_VAL(newFileHandle(handle, &file_lock));
+    return OBJ_VAL(newFileHandle(handle, file_lock));
 }
 
 
@@ -104,8 +104,8 @@ Value cc_function_file_close(int arg_count, Value* args) {
     }
     // Because POSIX locking is region based, it's best to just change the lock
     // type in the original lock data and pass it back through.
-    fh->lock->l_type = F_UNLCK;
-    if(fcntl(fileno(fh->handle), F_SETLK, fh->lock) != 0) {
+    fh->lock.l_type = F_UNLCK;
+    if(fcntl(fileno(fh->handle), F_SETLK, &fh->lock) != 0) {
         return FERROR_ERRNO_VAL(FE_FCLOSE_UNFLOCK_FAILED);
     }
     // Now we can finally actually close the handle.  Yes, it's safe to use
@@ -143,7 +143,7 @@ Value cc_function_file_read_line(int arg_count, Value* args) {
         // we tried unsuccessfully to read, or if there was some sort of error.
         // The EOF check at the top should have protected us from fuckery...
         free(buffer);
-        return FERROR_VAL(FE_FREAD_GETLINE_FAILED);
+        return FERROR_ERRNO_VAL(FE_FREAD_GETLINE_FAILED);
     }
     ObjString* str = copyString(buffer, bufflen);
     free(buffer);
@@ -170,7 +170,17 @@ Value cc_function_file_at_eof(int arg_count, Value* args) {
  * - returns nil on error
  * - returns the number of bytes written
  */
-Value cc_function_file_write(int arg_count, Value* args) { return NIL_VAL; }
+Value cc_function_file_write(int arg_count, Value* args) {
+    if(arg_count != 2) { return FERROR_VAL(FE_ARG_COUNT_2); }
+    if(!IS_FILEHANDLE(args[0])) { return FERROR_VAL(FE_ARG_1_FH); }
+    if(!IS_STRING(args[1])) { return FERROR_VAL(FE_ARG_2_STRING); }
+
+    int res = fputs(AS_CSTRING(args[1]), AS_FILEHANDLE(args[0])->handle);
+    if(res == EOF) {
+        return FERROR_ERRNO_VAL(FE_FWRITE_FPUTS_FAILED);
+    }
+    return NUMBER_VAL(AS_STRING(args[1])->length);
+}
 
 
 /**

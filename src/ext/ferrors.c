@@ -31,6 +31,7 @@ const char* ferror_strings[FE_MAX_ERROR_ID] = {
 /*  FE_FCLOSE_UNFLOCK_FAILED */      ,"clearing POSIX file lock failed"
 /*  FE_FCLOSE_FCLOSE_FAILED_LOL */   ,"internal call to fclose() failed (lol how did you do that)"
 /*  FE_FREAD_GETLINE_FAILED */       ,"internal call to getline() failed"
+/*  FE_FWRITE_FPUTS_FAILED */        ,"internal call to fputs() failed"
 
 /*  FE_INVALID_ERROR_ID */           ,"(invalid ferror_id)"
 };

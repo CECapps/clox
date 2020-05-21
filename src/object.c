@@ -40,10 +40,12 @@ ObjUserArray* newUserArray() {
 }
 
 
-ObjFileHandle* newFileHandle(FILE* handle, struct flock* lock) {
+ObjFileHandle* newFileHandle(FILE* handle, struct flock lock) {
   ObjFileHandle* fh = ALLOCATE_OBJ(ObjFileHandle, OBJ_FILEHANDLE);
+
   fh->handle = handle;
-  fh->lock = lock;
+  memcpy(&fh->lock, &lock, sizeof(struct flock));
+
   return fh;
 }
 
