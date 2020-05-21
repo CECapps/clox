@@ -266,21 +266,43 @@ static InterpretResult run() {
   for (;;) {
 
 #ifdef DEBUG_TRACE_EXECUTION
-    bool found_things_on_stack = false; // Variation - explicit denation of an empty stack
-    printf("   Stack: "); // Variation - this is supposed to be just 10 spaces
+    bool found_things_on_stack = false;
+    printf("\nS   ");
+    int stack_count = 0;
     for (Value* slot = vm.stack; slot < vm.stackTop; slot++) {
-      found_things_on_stack = true; // Variation
-      printf("[ ");
+      if(slot == frame->slots) {
+        printf("FRAME > ");
+      }
+      found_things_on_stack = true;
+      printf("%d:[", stack_count++);
       printValue(*slot);
-      printf(" ]");
+      printf("] ");
     }
 
-    // Variation
     if (!found_things_on_stack) {
       printf("(empty)");
     }
-
     printf("\n");
+
+    printf("G   ");
+    bool found_things_in_globals = false;
+    for(int i = 0; i < vm.globals.capacity; i++) {
+      if(vm.globals.entries[i].key == NULL || IS_NATIVE(vm.globals.entries[i].value)) {
+        continue;
+      }
+      found_things_in_globals = true;
+      printf("%d:(", i);
+      printObject(OBJ_VAL(vm.globals.entries[i].key));
+      printf(" => ");
+      printValue(vm.globals.entries[i].value);
+      printf(") ");
+    }
+
+    if (!found_things_in_globals) {
+      printf("(empty)");
+    }
+    printf("\n");
+
     disassembleInstruction(&frame->function->chunk, (int)(frame->ip - frame->function->chunk.code));
 #endif
 
