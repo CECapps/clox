@@ -59,7 +59,7 @@ Value cc_function_file_open(int arg_count, Value* args) {
     }
     int fd = open(AS_CSTRING(args[0]), open_mode, 0644);
     if(fd == -1) {
-        return FERROR_ERRNO_VAL(FE_FOPEN_OPEN_FAILED);
+        return FERROR_AUTOERRNO_VAL(FE_FOPEN_OPEN_FAILED);
     }
     // Passing "w" to fopen causes a truncate, but passing it to fdopen does not.
     char* fopen_mode = is_reader && !is_writer
@@ -67,7 +67,7 @@ Value cc_function_file_open(int arg_count, Value* args) {
                     : (is_writer && !is_reader ? "w" : "r+");
     FILE* handle = fdopen(fd, fopen_mode);
     if(handle == NULL) {
-        return FERROR_ERRNO_VAL(FE_FOPEN_FDOPEN_FAILED);
+        return FERROR_AUTOERRNO_VAL(FE_FOPEN_FDOPEN_FAILED);
     }
 
     // POSIX file locks seem to be a better (more portable) choice than flock()
@@ -80,7 +80,7 @@ Value cc_function_file_open(int arg_count, Value* args) {
     };
     int flockres = fcntl(fileno(handle), F_SETLKW, &file_lock); // Set Lock, Wait (blocking)
     if(flockres != 0) {
-        return FERROR_ERRNO_VAL(FE_FOPEN_FLOCK_FAILED);
+        return FERROR_AUTOERRNO_VAL(FE_FOPEN_FLOCK_FAILED);
     }
     // Okay, we should be good to go now.
     return OBJ_VAL(newFileHandle(handle, file_lock));
@@ -100,18 +100,21 @@ Value cc_function_file_close(int arg_count, Value* args) {
     ObjFileHandle* fh = AS_FILEHANDLE(args[0]);
     // The close automatically flushes, but let's do that *before* the unlock.
     if(fflush(fh->handle) != 0) {
-        return FERROR_ERRNO_VAL(FE_FCLOSE_FLUSH_FAILED);
+        return FERROR_AUTOERRNO_VAL(FE_FCLOSE_FLUSH_FAILED);
     }
-    // Because POSIX locking is region based, it's best to just change the lock
-    // type in the original lock data and pass it back through.
-    fh->lock.l_type = F_UNLCK;
-    if(fcntl(fileno(fh->handle), F_SETLK, &fh->lock) != 0) {
-        return FERROR_ERRNO_VAL(FE_FCLOSE_UNFLOCK_FAILED);
+    // Don't try to double-release a lock.
+    if(fh->lock.l_type != F_UNLCK) {
+        // Because POSIX locking is region based, it's best to just change the lock
+        // type in the original lock data and pass it back through.
+        fh->lock.l_type = F_UNLCK;
+        if(fcntl(fileno(fh->handle), F_SETLK, &fh->lock) != 0) {
+            return FERROR_AUTOERRNO_VAL(FE_FCLOSE_UNFLOCK_FAILED);
+        }
     }
     // Now we can finally actually close the handle.  Yes, it's safe to use
     // fclose() here instead of close().
     if(fclose(fh->handle) != 0) {
-        return FERROR_ERRNO_VAL(FE_FCLOSE_FCLOSE_FAILED_LOL);
+        return FERROR_AUTOERRNO_VAL(FE_FCLOSE_FCLOSE_FAILED_LOL);
     }
     return BOOL_VAL(true);
 }
@@ -142,8 +145,12 @@ Value cc_function_file_read_line(int arg_count, Value* args) {
         // but instead we got an error.  This can happen if we are at EOF and
         // we tried unsuccessfully to read, or if there was some sort of error.
         // The EOF check at the top should have protected us from fuckery...
+        int old_errno = errno;
         free(buffer);
-        return FERROR_ERRNO_VAL(FE_FREAD_GETLINE_FAILED);
+        if(feof(fh->handle) != 0) {
+            return BOOL_VAL(false);
+        }
+        return FERROR_ERRNO_VAL(FE_FREAD_GETLINE_FAILED, old_errno);
     }
     ObjString* str = copyString(buffer, bufflen);
     free(buffer);
@@ -177,7 +184,7 @@ Value cc_function_file_write(int arg_count, Value* args) {
 
     int res = fputs(AS_CSTRING(args[1]), AS_FILEHANDLE(args[0])->handle);
     if(res == EOF) {
-        return FERROR_ERRNO_VAL(FE_FWRITE_FPUTS_FAILED);
+        return FERROR_AUTOERRNO_VAL(FE_FWRITE_FPUTS_FAILED);
     }
     return NUMBER_VAL(AS_STRING(args[1])->length);
 }

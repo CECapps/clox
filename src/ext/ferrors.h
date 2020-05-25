@@ -36,12 +36,17 @@ typedef enum {
     FE_FREAD_GETLINE_FAILED,
     FE_FWRITE_FPUTS_FAILED,
 
+    FE_PROCESS_PIPE_CREATE_FAILED,
+    FE_PROCESS_FORK_FAILED,
+    FE_PROCESS_CREATE_FAILED,
+
     FE_INVALID_ERROR_ID,
     FE_MAX_ERROR_ID
 } FErrorIDs;
 
 #define FERROR_VAL(ferror_id) OBJ_VAL(newFunctionError(ferror_id, 0))
-#define FERROR_ERRNO_VAL(ferror_id) OBJ_VAL(newFunctionError(ferror_id, errno))
+#define FERROR_AUTOERRNO_VAL(ferror_id) OBJ_VAL(newFunctionError(ferror_id, errno))
+#define FERROR_ERRNO_VAL(ferror_id, errnum) OBJ_VAL(newFunctionError(ferror_id, errnum))
 
 const char* cc_ferror_to_string(int ferror_id);
 

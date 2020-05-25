@@ -9,6 +9,7 @@
 #include "./number.h"
 #include "./string.h"
 #include "./file.h"
+#include "./process.h"
 #include "./ferrors.h"
 
 Value cc_function_debug_dump_stack(int arg_count, Value* args) {
@@ -161,4 +162,5 @@ void cc_register_ext_functions() {
   cc_register_ext_number();
   cc_register_ext_string();
   cc_register_ext_file();
+  cc_register_ext_process();
 }
