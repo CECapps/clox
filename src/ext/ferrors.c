@@ -36,6 +36,7 @@ const char* ferror_strings[FE_MAX_ERROR_ID] = {
 /*  FE_PROCESS_PIPE_CREATE_FAILED */ ,"internal call to pipe() failed"
 /*  FE_PROCESS_FORK_FAILED */        ,"internal call to fork() failed"
 /*  FE_PROCESS_CREATE_FAILED */      ,"process creation failed, internal impossible fallthrough!?"
+/*  FE_PROCESS_CLOSE_FAILED */       ,"process close failed"
 
 /*  FE_INVALID_ERROR_ID */           ,"(invalid ferror_id)"
 };

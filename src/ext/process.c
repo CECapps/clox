@@ -1,5 +1,8 @@
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/wait.h>
+#include <signal.h>
+
 
 #include "../memory.h"
 #include "../vm.h"
@@ -94,6 +97,48 @@ Value cc_function_process_open(int arg_count, Value* args) {
 }
 
 
+Value cc_function_process_close(int arg_count, Value* args) {
+    if(arg_count != 1) { return FERROR_VAL(FE_ARG_COUNT_1); }
+    if(!IS_NUMBER(args[0])) { return FERROR_VAL(FE_ARG_1_NUMBER); }
+
+    int pid = AS_NUMBER(args[0]);
+    int status = 0;
+    int res = waitpid(pid, &status, WNOHANG);
+
+    if(res == 0) {
+        // No status information was reported.  The process is probably still
+        // running.  Let's make it not run any more, waiting until it stops.
+        kill(pid, SIGTERM);
+        status = 0;
+        res = waitpid(pid, &status, 0);
+    }
+
+    if(res != pid) {
+        // Nope, it's still not dead.  It should be dead.
+        return FERROR_AUTOERRNO_VAL(FE_PROCESS_CLOSE_FAILED);
+    }
+
+    ObjUserArray* ua = newUserArray();
+    ua_grow(ua, 2);
+    if(WIFEXITED(status)) {
+        // The process exited normally.  Return the status value.
+        ua->inner.values[0] = BOOL_VAL(true);
+        ua->inner.values[1] = NUMBER_VAL(WEXITSTATUS(status));
+    } else {
+        // We're expressly not passing WUNTRACED or WCONTINUED, telling waitpid()
+        // that we do not care about stopped or continued processes.  In this
+        // case, the spec says that either WIFEXITED() or WIFSIGNALED() will
+        // be true.  Given that WIFEXITED() is false, the child process must
+        // have died a death by signal.  Report the killing signal.
+        ua->inner.values[0] = BOOL_VAL(false);
+        ua->inner.values[1] = NUMBER_VAL(WTERMSIG(status));
+    }
+    ua->inner.count = 2;
+    return OBJ_VAL(ua);
+}
+
+
 void cc_register_ext_process() {
-    defineNative("process_open", cc_function_process_open);
+    defineNative("process_open",  cc_function_process_open);
+    defineNative("process_close", cc_function_process_close);
 }
