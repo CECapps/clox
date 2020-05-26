@@ -17,6 +17,15 @@
 
 #include "ferrors.h"
 
+
+/**
+ * file_exists(filename)
+ * - returns nil on error
+ * - returns true if the given filename exists
+ */
+Value cc_function_file_exists(int arg_count, Value* args) { return NIL_VAL; }
+
+
 /**
  * file_open(filename, mode)
  * - returns nil on parameter error
@@ -69,21 +78,18 @@ Value cc_function_file_open(int arg_count, Value* args) {
     if(handle == NULL) {
         return FERROR_AUTOERRNO_VAL(FE_FOPEN_FDOPEN_FAILED);
     }
+    ObjFileHandle* fh = newFileHandle(handle);
+    fh->lock.l_type = is_writer ? F_WRLCK : F_RDLCK;
+    fh->is_writer = is_writer;
+    fh->is_reader = is_reader;
+    fh->is_open = true;
 
-    // POSIX file locks seem to be a better (more portable) choice than flock()
-    struct flock file_lock = {
-        .l_type   = is_writer ? F_WRLCK : F_RDLCK,
-        .l_whence = SEEK_SET, // POSIX file locking is range based, so...
-        .l_start  = 0,        // ...start our lock at the start of the file...
-        .l_len    = 0,        // ...and extend it through the end.  0 is magic.
-        .l_pid    = 0
-    };
-    int flockres = fcntl(fileno(handle), F_SETLKW, &file_lock); // Set Lock, Wait (blocking)
+    int flockres = fcntl(fileno(handle), F_SETLKW, &fh->lock); // Set Lock, Wait (blocking)
     if(flockres != 0) {
         return FERROR_AUTOERRNO_VAL(FE_FOPEN_FLOCK_FAILED);
     }
     // Okay, we should be good to go now.
-    return OBJ_VAL(newFileHandle(handle, file_lock));
+    return OBJ_VAL(fh);
 }
 
 
@@ -92,14 +98,14 @@ Value cc_function_file_open(int arg_count, Value* args) {
  * - returns nil on parameter error
  * - returns true on success... yes, this can fail.  Don't ask how.
  */
-Value cc_function_file_close(int arg_count, Value* args) {
+Value cc_function_fh_close(int arg_count, Value* args) {
     if(arg_count != 1 || !IS_FILEHANDLE(args[0])) {
         return FERROR_VAL(FE_ARG_1_FH);
     }
 
     ObjFileHandle* fh = AS_FILEHANDLE(args[0]);
     // The close automatically flushes, but let's do that *before* the unlock.
-    if(fflush(fh->handle) != 0) {
+    if(fh->is_writer && fflush(fh->handle) != 0) {
         return FERROR_AUTOERRNO_VAL(FE_FCLOSE_FLUSH_FAILED);
     }
     // Don't try to double-release a lock.
@@ -116,6 +122,7 @@ Value cc_function_file_close(int arg_count, Value* args) {
     if(fclose(fh->handle) != 0) {
         return FERROR_AUTOERRNO_VAL(FE_FCLOSE_FCLOSE_FAILED_LOL);
     }
+    fh->is_open = false;
     return BOOL_VAL(true);
 }
 
@@ -126,14 +133,15 @@ Value cc_function_file_close(int arg_count, Value* args) {
  * - returns false on end of file
  * - returns the string next line otherwise, including the newline
  */
-Value cc_function_file_read_line(int arg_count, Value* args) {
+Value cc_function_fh_read_line(int arg_count, Value* args) {
     if(arg_count != 1 || !IS_FILEHANDLE(args[0])) {
         return FERROR_VAL(FE_ARG_1_FH);
     }
     ObjFileHandle* fh = AS_FILEHANDLE(args[0]);
 
-    // Don't even bother if we've reached EOF
-    if(feof(fh->handle) != 0) {
+    // Don't even bother if we've reached EOF, if the file isn't open, or it's
+    // not open for reading.
+    if(feof(fh->handle) != 0 || !fh->is_reader || !fh->is_open) {
         return BOOL_VAL(false);
     }
 
@@ -163,9 +171,12 @@ Value cc_function_file_read_line(int arg_count, Value* args) {
  * - returns nil on parameter error
  * - returns true if the end of the file has been reached
  */
-Value cc_function_file_at_eof(int arg_count, Value* args) {
+Value cc_function_fh_at_eof(int arg_count, Value* args) {
     if(arg_count != 1 || !IS_FILEHANDLE(args[0])) {
         return FERROR_VAL(FE_ARG_1_FH);
+    }
+    if(!AS_FILEHANDLE(args[0])->is_open) {
+        return BOOL_VAL(false);
     }
 
     return BOOL_VAL(feof(AS_FILEHANDLE(args[0])->handle) != 0);
@@ -177,33 +188,22 @@ Value cc_function_file_at_eof(int arg_count, Value* args) {
  * - returns nil on error
  * - returns the number of bytes written
  */
-Value cc_function_file_write(int arg_count, Value* args) {
+Value cc_function_fh_write(int arg_count, Value* args) {
     if(arg_count != 2) { return FERROR_VAL(FE_ARG_COUNT_2); }
     if(!IS_FILEHANDLE(args[0])) { return FERROR_VAL(FE_ARG_1_FH); }
     if(!IS_STRING(args[1])) { return FERROR_VAL(FE_ARG_2_STRING); }
 
-    int res = fputs(AS_CSTRING(args[1]), AS_FILEHANDLE(args[0])->handle);
+    ObjFileHandle* fh = AS_FILEHANDLE(args[0]);
+    if(!fh->is_writer|| !fh->is_open) {
+        return BOOL_VAL(false);
+    }
+
+    int res = fputs(AS_CSTRING(args[1]), fh->handle);
     if(res == EOF) {
         return FERROR_AUTOERRNO_VAL(FE_FWRITE_FPUTS_FAILED);
     }
     return NUMBER_VAL(AS_STRING(args[1])->length);
 }
-
-
-/**
- * file_truncate(fh, length = 0)
- * - returns nil on error
- * - returns true on success
- */
-Value cc_function_file_truncate(int arg_count, Value* args) { return NIL_VAL; }
-
-
-/**
- * file_exists(filename)
- * - returns nil on error
- * - returns true if the given filename exists
- */
-Value cc_function_file_exists(int arg_count, Value* args) { return NIL_VAL; }
 
 
 /**
@@ -213,7 +213,15 @@ Value cc_function_file_exists(int arg_count, Value* args) { return NIL_VAL; }
  * - returns a string containing up to max_length bytes
  *   - if max_length is missing or zero, the entire file will be read
  */
-Value cc_function_file_read_block(int arg_count, Value* args) { return NIL_VAL; }
+Value cc_function_fh_read_block(int arg_count, Value* args) { return NIL_VAL; }
+
+
+/**
+ * file_truncate(fh, length = 0)
+ * - returns nil on error
+ * - returns true on success
+ */
+Value cc_function_fh_truncate(int arg_count, Value* args) { return NIL_VAL; }
 
 
 /**
@@ -221,7 +229,7 @@ Value cc_function_file_read_block(int arg_count, Value* args) { return NIL_VAL; 
  * - returns nil on error
  * - returns the position of the current filehandle within the file, in bytes
  */
-Value cc_function_file_position(int arg_count, Value* args) { return NIL_VAL; }
+Value cc_function_fh_position(int arg_count, Value* args) { return NIL_VAL; }
 
 
 /**
@@ -229,7 +237,7 @@ Value cc_function_file_position(int arg_count, Value* args) { return NIL_VAL; }
  * - returns nil on error
  * - returns true on success
  */
-Value cc_function_file_seek(int arg_count, Value* args) { return NIL_VAL; }
+Value cc_function_fh_seek(int arg_count, Value* args) { return NIL_VAL; }
 
 
 /**
@@ -238,7 +246,7 @@ Value cc_function_file_seek(int arg_count, Value* args) { return NIL_VAL; }
  * - returns true on success
  * - moves the file pointer to the start of the file, plus the given offset
  */
-Value cc_function_file_seek_start(int arg_count, Value* args) { return NIL_VAL; }
+Value cc_function_fh_seek_start(int arg_count, Value* args) { return NIL_VAL; }
 
 
 /**
@@ -247,20 +255,21 @@ Value cc_function_file_seek_start(int arg_count, Value* args) { return NIL_VAL; 
  * - returns true on success
  * - moves the file pointer to the end of the file, plus the given offset
  */
-Value cc_function_file_seek_end(int arg_count, Value* args) { return NIL_VAL; }
+Value cc_function_fh_seek_end(int arg_count, Value* args) { return NIL_VAL; }
 
 
 void cc_register_ext_file() {
-    defineNative("file_open",           cc_function_file_open);
-    defineNative("file_close",          cc_function_file_close);
-    defineNative("file_read_line",      cc_function_file_read_line);
-    defineNative("file_at_eof",         cc_function_file_at_eof);
-    defineNative("file_write",          cc_function_file_write);
-    defineNative("file_truncate",       cc_function_file_truncate);
     defineNative("file_exists",         cc_function_file_exists);
-    defineNative("file_read_block",     cc_function_file_read_block);
-    defineNative("file_position",       cc_function_file_position);
-    defineNative("file_seek",           cc_function_file_seek);
-    defineNative("file_seek_start",     cc_function_file_seek_start);
-    defineNative("file_seek_end",       cc_function_file_seek_end);
+    defineNative("file_open",           cc_function_file_open);
+
+    defineNative("fh_close",            cc_function_fh_close);
+    defineNative("fh_read_line",        cc_function_fh_read_line);
+    defineNative("fh_at_eof",           cc_function_fh_at_eof);
+    defineNative("fh_write",            cc_function_fh_write);
+    defineNative("fh_read_block",       cc_function_fh_read_block);
+    defineNative("fh_truncate",         cc_function_fh_truncate);
+    defineNative("fh_position",         cc_function_fh_position);
+    defineNative("fh_seek",             cc_function_fh_seek);
+    defineNative("fh_seek_start",       cc_function_fh_seek_start);
+    defineNative("fh_seek_end",         cc_function_fh_seek_end);
 }

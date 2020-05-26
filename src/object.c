@@ -40,11 +40,20 @@ ObjUserArray* newUserArray() {
 }
 
 
-ObjFileHandle* newFileHandle(FILE* handle, struct flock lock) {
+ObjFileHandle* newFileHandle(FILE* handle) {
   ObjFileHandle* fh = ALLOCATE_OBJ(ObjFileHandle, OBJ_FILEHANDLE);
 
   fh->handle = handle;
-  memcpy(&fh->lock, &lock, sizeof(struct flock));
+
+  fh->lock.l_type = F_UNLCK;
+  fh->lock.l_whence = SEEK_SET;
+  fh->lock.l_start = 0;
+  fh->lock.l_len = 0;
+  fh->lock.l_pid = 0;
+
+  fh->is_reader = false;
+  fh->is_writer = false;
+  fh->is_open = false;
 
   return fh;
 }

@@ -52,10 +52,17 @@ Value cc_function_process_open(int arg_count, Value* args) {
         close(stdout_pipe[WRITING_END]);
         close(stderr_pipe[WRITING_END]);
 
-        struct flock dummy_lock = { .l_type = F_UNLCK };
-        ObjFileHandle* stdin_h =  newFileHandle(fdopen(stdin_pipe[WRITING_END], "w"), dummy_lock);
-        ObjFileHandle* stdout_h = newFileHandle(fdopen(stdout_pipe[READING_END], "r"), dummy_lock);
-        ObjFileHandle* stderr_h = newFileHandle(fdopen(stderr_pipe[READING_END], "r"), dummy_lock);
+        ObjFileHandle* stdin_h =  newFileHandle(fdopen(stdin_pipe[WRITING_END], "w"));
+        stdin_h->is_open = true;
+        stdin_h->is_writer = true;
+
+        ObjFileHandle* stdout_h = newFileHandle(fdopen(stdout_pipe[READING_END], "r"));
+        stdout_h->is_open = true;
+        stdout_h->is_reader = true;
+
+        ObjFileHandle* stderr_h = newFileHandle(fdopen(stderr_pipe[READING_END], "r"));
+        stderr_h->is_open = true;
+        stderr_h->is_reader = true;
 
         ObjUserArray* ua = newUserArray();
         ua_grow(ua, 4);
