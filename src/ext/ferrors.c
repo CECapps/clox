@@ -32,6 +32,8 @@ const char* ferror_strings[FE_MAX_ERROR_ID] = {
 /*  FE_FCLOSE_FCLOSE_FAILED_LOL */   ,"internal call to fclose() failed (lol how did you do that)"
 /*  FE_FREAD_GETLINE_FAILED */       ,"internal call to getline() failed"
 /*  FE_FWRITE_FPUTS_FAILED */        ,"internal call to fputs() failed"
+/*  FE_DIR_DIROPEN_FAILED, */        ,"internal call to diropen() failed"
+/*  FE_DIR_READDIR_FAILED, */        ,"internal call to readdir() failed"
 
 /*  FE_PROCESS_PIPE_CREATE_FAILED */ ,"internal call to pipe() failed"
 /*  FE_PROCESS_FORK_FAILED */        ,"internal call to fork() failed"

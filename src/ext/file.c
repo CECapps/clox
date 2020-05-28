@@ -11,10 +11,13 @@
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <dirent.h>
 
 #include "../common.h"
+#include "../memory.h"
 #include "../vm.h"
 
+#include "userarray.h"
 #include "ferrors.h"
 
 
@@ -258,6 +261,38 @@ Value cc_function_fh_seek_start(int arg_count, Value* args) { return NIL_VAL; }
 Value cc_function_fh_seek_end(int arg_count, Value* args) { return NIL_VAL; }
 
 
+Value cc_function_dir_get_all(int arg_count, Value* args) {
+    if(arg_count != 1) { return FERROR_VAL(FE_ARG_COUNT_1); }
+    if(!IS_STRING(args[0])) { return FERROR_VAL(FE_ARG_1_STRING); }
+
+    DIR* dh = opendir(AS_CSTRING(args[0]));
+    if(dh == NULL) {
+        return FERROR_AUTOERRNO_VAL(FE_DIR_DIROPEN_FAILED);
+    }
+
+    struct dirent* entry = NULL;
+    ObjUserArray* ua = newUserArray();
+
+    int index = 0;
+    do {
+        errno = 0;
+        if((entry = readdir(dh)) != NULL) {
+            ua_grow(ua, index);
+            ua->inner.values[index++] = OBJ_VAL(copyString(entry->d_name, strlen(entry->d_name)));
+        }
+    } while(entry != NULL);
+    ua->inner.count = index;
+
+    if(errno) {
+        return FERROR_AUTOERRNO_VAL(FE_DIR_READDIR_FAILED);
+    }
+
+    closedir(dh);
+
+    return OBJ_VAL(ua);
+}
+
+
 void cc_register_ext_file() {
     defineNative("file_exists",         cc_function_file_exists);
     defineNative("file_open",           cc_function_file_open);
@@ -272,4 +307,6 @@ void cc_register_ext_file() {
     defineNative("fh_seek",             cc_function_fh_seek);
     defineNative("fh_seek_start",       cc_function_fh_seek_start);
     defineNative("fh_seek_end",         cc_function_fh_seek_end);
+
+    defineNative("dir_get_all",         cc_function_dir_get_all);
 }

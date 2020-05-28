@@ -13,9 +13,14 @@
 
 void ua_grow(ObjUserArray* ua, int new_capacity) {
     int old_capacity = ua->inner.capacity;
-    while(ua->inner.capacity < new_capacity) {
+    while(ua->inner.capacity <= new_capacity) {
         ua->inner.capacity = GROW_CAPACITY(ua->inner.capacity);
     }
+    if(old_capacity == ua->inner.capacity) {
+        // Don't rewrite the array if we didn't actually change capacity.
+        return;
+    }
+
     ua->inner.values = GROW_ARRAY(ua->inner.values, Value, old_capacity, ua->inner.capacity);
     // Initialize each newly allocated Value element as nil.
     for(; old_capacity < ua->inner.capacity; old_capacity++) {
