@@ -1,0 +1,14 @@
+#!./bin/clox
+
+transclude "./lib/dump.lox";
+transclude "./lib/dirtools.lox";
+
+var Infinity = 1 / 0;
+var NaN = 0 / 0;
+
+fun canonicalize(filename, index) {
+    return file_resolve_path(filename);
+}
+
+var test_files = find_files_matching("../canonical/test", "\.lox$");
+dump(ar_map(test_files, canonicalize));

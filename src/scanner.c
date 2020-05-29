@@ -115,6 +115,17 @@ static void skipWhitespace() {
         }
         break;
 
+      case '#':
+        if(peekNext() == '!') {
+          // It's a hashbang, treat it as a comment.
+          while (peek() != '\n' && !isAtEnd()) {
+            advance();
+          }
+        } else {
+          return;
+        }
+        break;
+
       default:
         return;
     }

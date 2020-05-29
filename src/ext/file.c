@@ -324,9 +324,9 @@ Value cc_function_file_is_directory(int arg_count, Value* args) {
 
     ObjString* filename = AS_STRING(args[0]);
 
-    struct stat* status = NULL;
-    if(stat(filename->chars, status) == 0) {
-        return BOOL_VAL(S_ISDIR(status->st_mode) != 0);
+    struct stat status;
+    if(stat(filename->chars, &status) == 0) {
+        return BOOL_VAL(S_ISDIR(status.st_mode) != 0);
     }
     return FERROR_AUTOERRNO_VAL(FE_FILE_STAT_FAILED);
 }
@@ -338,9 +338,9 @@ Value cc_function_file_is_regular(int arg_count, Value* args) {
 
     ObjString* filename = AS_STRING(args[0]);
 
-    struct stat* status = NULL;
-    if(stat(filename->chars, status) == 0) {
-        return BOOL_VAL(S_ISREG(status->st_mode) != 0);
+    struct stat status;
+    if(stat(filename->chars, &status) == 0) {
+        return BOOL_VAL(S_ISREG(status.st_mode) != 0);
     }
     return FERROR_AUTOERRNO_VAL(FE_FILE_STAT_FAILED);
 }
@@ -352,9 +352,9 @@ Value cc_function_file_is_symlink(int arg_count, Value* args) {
 
     ObjString* filename = AS_STRING(args[0]);
 
-    struct stat* status = NULL;
-    if(stat(filename->chars, status) == 0) {
-        return BOOL_VAL(S_ISLNK(status->st_mode) != 0);
+    struct stat status;
+    if(stat(filename->chars, &status) == 0) {
+        return BOOL_VAL(S_ISLNK(status.st_mode) != 0);
     }
     return FERROR_AUTOERRNO_VAL(FE_FILE_STAT_FAILED);
 }
@@ -366,11 +366,11 @@ Value cc_function_file_is_special(int arg_count, Value* args) {
 
     ObjString* filename = AS_STRING(args[0]);
 
-    struct stat* status = NULL;
-    if(stat(filename->chars, status) == 0) {
-        if(S_ISDIR(status->st_mode) == 0
-           && S_ISREG(status->st_mode) == 0
-           && S_ISLNK(status->st_mode) == 0
+    struct stat status;
+    if(stat(filename->chars, &status) == 0) {
+        if(S_ISDIR(status.st_mode) == 0
+           && S_ISREG(status.st_mode) == 0
+           && S_ISLNK(status.st_mode) == 0
         ) {
             // If it's not a directory, a regular file, or a symlink, it must
             // be some other type of file.

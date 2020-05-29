@@ -1,0 +1,19 @@
+
+fun find_files_matching(directory, regex) {
+    return find_files_recursive(directory, regex, ar_create());
+}
+
+fun find_files_recursive(directory, regex, list) {
+    var file_list = dir_get_all(directory);
+    for (var i = 0; i < ar_count(file_list); i = i + 1) {
+        var filename = directory + '/' + ar_get(file_list, i);
+        if (file_is_directory(filename)) {
+            list = find_files_recursive(filename, regex, list);
+        } else if (file_is_regular(filename) or file_is_symlink(filename)) {
+            if (string_regex_matches(filename, regex)) {
+                ar_push(list, filename);
+            }
+        }
+    }
+    return list;
+}

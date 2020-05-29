@@ -1,0 +1,92 @@
+
+fun dump (victim) {
+    dump_recursive(victim, 0, true, true);
+}
+
+fun dump_recursive (victim, depth, newline, indent) {
+    if (indent) {
+        dump_recurse_indent(depth);
+    }
+    if (victim == nil) {                  dump_nil(victim); }
+    else if (val_is_boolean(victim)) {    dump_bool(victim); }
+    else if (val_is_number(victim)) {     dump_number(victim); }
+    else if (val_is_string(victim)) {     dump_string(victim); }
+    else if (val_is_array(victim)) {      dump_recurse_array(victim, depth + 1); }
+    else if (val_is_hash(victim)) {       dump_recurse_hash(victim, depth + 1); }
+    else if (val_is_filehandle(victim)) { dump_filehandle(victim); }
+    else {
+        echo "<!UNKNOWN VAR TYPE!>: ";
+        print victim;
+        dump_recurse_indent(depth);
+    }
+    if (newline) {
+        echo "\n";
+    }
+}
+
+fun dump_recurse_indent (depth) {
+    for (var i = 0; i < depth; i = i + 1) {
+        echo "\t";
+    }
+}
+
+fun dump_recurse_array (array_victim, depth) {
+    echo "<array count=", ar_count(array_victim), ">\n";
+    for (var i = 0; i < ar_count(array_victim); i = i + 1) {
+        dump_recurse_indent(depth);
+        echo "[", i, "] => ";
+        dump_recursive(ar_get(array_victim, i), depth + 1, true, false);
+    }
+}
+
+fun dump_recurse_hash (hash_victim, depth) {
+    echo "<hash count=", ht_count_keys(hash_victim), ">\n";
+    for (var i = 0; i < ht_count_keys(hash_victim); i = i + 1) {
+        var key = ht_get_key_index(hash_victim, i);
+
+        dump_recurse_indent(depth);
+        echo "[";
+        dump_recursive(key, 0, false, false);
+        echo "] => ";
+        dump_recursive(ht_get(hash_victim, key), depth + 1, true, false);
+    }
+}
+
+fun dump_nil (nil_victim) {
+    echo "<nil>";
+}
+
+fun dump_bool (bool_victim) {
+    if(bool_victim) {
+        echo "<true>";
+        return;
+    }
+    echo "<false>";
+}
+
+fun dump_number (number_victim) {
+    if (val_is_nan(number_victim)) {
+        echo "<NaN>";
+        return;
+    } else if (val_is_infinity(number_victim)) {
+        if (number_victim < 0) {
+            echo "<-Inf>";
+            return;
+        }
+        echo "<Inf>";
+        return;
+    }
+    echo "<number> ", number_to_string(number_victim);
+}
+
+fun dump_string (string_victim) {
+    echo "<string length=",
+         string_length(string_victim),
+         '> "',
+         string_victim,
+         '"';
+}
+
+fun dump_filehandle (fh_victim) {
+    echo fh_victim; // meh.
+}
