@@ -10,6 +10,7 @@
 #include "./string.h"
 #include "./file.h"
 #include "./process.h"
+#include "./userarray.h"
 #include "./ferrors.h"
 
 Value cc_function_debug_dump_stack(int arg_count, Value* args) {
@@ -144,10 +145,27 @@ Value cc_function_val_is_infinity(int arg_count, Value* args) {
 }
 
 
+extern int global_argc;
+extern const char** global_argv;
+Value cc_function_environment_arguments(int arg_count, Value* args) {
+
+    ObjUserArray* ua = newUserArray();
+    int index = 0;
+    for(int i = 1; i < global_argc; i++) {
+        ua_grow(ua, index);
+        ua->inner.values[index++] = OBJ_VAL(copyString(global_argv[i], strlen(global_argv[i])));
+    }
+    ua->inner.count = index;
+
+    return OBJ_VAL(ua);
+}
+
+
 void cc_register_ext_functions() {
   defineNative("debug_dump_stack",      cc_function_debug_dump_stack);
   defineNative("time",                  cc_function_time);
   defineNative("environment_getvar",    cc_function_environment_getvar);
+  defineNative("environment_arguments", cc_function_environment_arguments);
 
   defineNative("val_is_empty",          cc_function_val_is_empty);
   defineNative("val_is_string",         cc_function_val_is_string);

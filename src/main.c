@@ -73,9 +73,14 @@ static void runFile(const char* path) {
 int main(int argc, const char* argv[]) {
   initVM();
 
+  extern int global_argc;
+  extern const char** global_argv;
+  global_argc = argc;
+  global_argv = argv;
+
   if (argc == 1) {
     repl();
-  } else if (argc == 2) {
+  } else if (argc >= 2) {
     runFile(argv[1]);
   } else {
     fprintf(stderr, "Usage: clox [path]\n");

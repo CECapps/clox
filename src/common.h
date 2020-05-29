@@ -14,6 +14,9 @@
 
 #define CC_FEATURES
 
+int global_argc;
+const char** global_argv;
+
 #define UINT8_COUNT (UINT8_MAX + 1)
 
 #endif

@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <sys/stat.h>
 
 #include "../common.h"
 #include "../memory.h"
@@ -277,8 +278,15 @@ Value cc_function_dir_get_all(int arg_count, Value* args) {
     do {
         errno = 0;
         if((entry = readdir(dh)) != NULL) {
+            int entlen = strlen(entry->d_name);
+            if(entlen == 1 && strncmp(entry->d_name, ".", 1) == 0) {
+                continue;
+            }
+            if(entlen == 2 && strncmp(entry->d_name, "..", 2) == 0) {
+                continue;
+            }
             ua_grow(ua, index);
-            ua->inner.values[index++] = OBJ_VAL(copyString(entry->d_name, strlen(entry->d_name)));
+            ua->inner.values[index++] = OBJ_VAL(copyString(entry->d_name, entlen));
         }
     } while(entry != NULL);
     ua->inner.count = index;
@@ -291,6 +299,88 @@ Value cc_function_dir_get_all(int arg_count, Value* args) {
 
     return OBJ_VAL(ua);
 }
+
+
+Value cc_function_file_resolve_path(int arg_count, Value* args) {
+    if(arg_count != 1) { return FERROR_VAL(FE_ARG_COUNT_1); }
+    if(!IS_STRING(args[0])) { return FERROR_VAL(FE_ARG_1_STRING); }
+
+    ObjString* filename = AS_STRING(args[0]);
+
+    char* resolved = ALLOCATE(char, PATH_MAX);
+    realpath(filename->chars, resolved);
+    if(resolved == NULL) {
+        return FERROR_AUTOERRNO_VAL(FE_FILE_REALPATH_FAILED);
+    }
+    ObjString* fp = copyString(resolved, strlen(resolved));
+    FREE(char, resolved);
+    return OBJ_VAL(fp);
+}
+
+
+Value cc_function_file_is_directory(int arg_count, Value* args) {
+    if(arg_count != 1) { return FERROR_VAL(FE_ARG_COUNT_1); }
+    if(!IS_STRING(args[0])) { return FERROR_VAL(FE_ARG_1_STRING); }
+
+    ObjString* filename = AS_STRING(args[0]);
+
+    struct stat* status = NULL;
+    if(stat(filename->chars, status) == 0) {
+        return BOOL_VAL(S_ISDIR(status->st_mode) != 0);
+    }
+    return FERROR_AUTOERRNO_VAL(FE_FILE_STAT_FAILED);
+}
+
+
+Value cc_function_file_is_regular(int arg_count, Value* args) {
+    if(arg_count != 1) { return FERROR_VAL(FE_ARG_COUNT_1); }
+    if(!IS_STRING(args[0])) { return FERROR_VAL(FE_ARG_1_STRING); }
+
+    ObjString* filename = AS_STRING(args[0]);
+
+    struct stat* status = NULL;
+    if(stat(filename->chars, status) == 0) {
+        return BOOL_VAL(S_ISREG(status->st_mode) != 0);
+    }
+    return FERROR_AUTOERRNO_VAL(FE_FILE_STAT_FAILED);
+}
+
+
+Value cc_function_file_is_symlink(int arg_count, Value* args) {
+    if(arg_count != 1) { return FERROR_VAL(FE_ARG_COUNT_1); }
+    if(!IS_STRING(args[0])) { return FERROR_VAL(FE_ARG_1_STRING); }
+
+    ObjString* filename = AS_STRING(args[0]);
+
+    struct stat* status = NULL;
+    if(stat(filename->chars, status) == 0) {
+        return BOOL_VAL(S_ISLNK(status->st_mode) != 0);
+    }
+    return FERROR_AUTOERRNO_VAL(FE_FILE_STAT_FAILED);
+}
+
+
+Value cc_function_file_is_special(int arg_count, Value* args) {
+    if(arg_count != 1) { return FERROR_VAL(FE_ARG_COUNT_1); }
+    if(!IS_STRING(args[0])) { return FERROR_VAL(FE_ARG_1_STRING); }
+
+    ObjString* filename = AS_STRING(args[0]);
+
+    struct stat* status = NULL;
+    if(stat(filename->chars, status) == 0) {
+        if(S_ISDIR(status->st_mode) == 0
+           && S_ISREG(status->st_mode) == 0
+           && S_ISLNK(status->st_mode) == 0
+        ) {
+            // If it's not a directory, a regular file, or a symlink, it must
+            // be some other type of file.
+            return BOOL_VAL(true);
+        }
+        return BOOL_VAL(false);
+    }
+    return FERROR_AUTOERRNO_VAL(FE_FILE_STAT_FAILED);
+}
+
 
 
 void cc_register_ext_file() {
@@ -309,4 +399,9 @@ void cc_register_ext_file() {
     defineNative("fh_seek_end",         cc_function_fh_seek_end);
 
     defineNative("dir_get_all",         cc_function_dir_get_all);
+    defineNative("file_resolve_path",   cc_function_file_resolve_path);
+    defineNative("file_is_directory",   cc_function_file_is_directory);
+    defineNative("file_is_regular",     cc_function_file_is_regular);
+    defineNative("file_is_symlink",     cc_function_file_is_symlink);
+    defineNative("file_is_special",     cc_function_file_is_special);
 }
