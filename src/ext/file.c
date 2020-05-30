@@ -164,7 +164,7 @@ Value cc_function_fh_read_line(int arg_count, Value* args) {
         }
         return FERROR_ERRNO_VAL(FE_FREAD_GETLINE_FAILED, old_errno);
     }
-    ObjString* str = copyString(buffer, bufflen);
+    ObjString* str = copyString(buffer, res);
     free(buffer);
     return OBJ_VAL(str);
 }

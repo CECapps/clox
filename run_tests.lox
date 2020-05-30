@@ -6,9 +6,60 @@ transclude "./lib/dirtools.lox";
 var Infinity = 1 / 0;
 var NaN = 0 / 0;
 
-fun canonicalize(filename, index) {
-    return file_resolve_path(filename);
+fun read_test_file(filename) {
+    var expect_stdout = ar_create();
+    var expect_stderr = ar_create();
+
+    var fh = file_open(filename, 'r');
+    if (!fh) {
+        return false;
+    }
+
+    var expect = '// expect: ';
+    var expectlen = string_length(expect);
+    var errline = '// [line ';
+    var errlinelen = 3; // for the forward slashes and first space.
+
+    var found_line = true;
+    while (found_line != false) {
+        found_line = false;
+        var line = fh_read_line(fh);
+        if (line != false) {
+            found_line = true;
+            var pos = string_index_of(line, expect);
+            if (val_is_number(pos)) {
+                ar_push(expect_stdout, string_trim_right(string_substring(line, expectlen + pos)));
+            }
+
+            pos = string_index_of(line, errline);
+            if (val_is_number(pos)) {
+                ar_push(expect_stderr, string_trim_right(string_substring(line, errlinelen + pos)));
+            }
+        }
+    }
+    var res = ar_create();
+    ar_push(res, expect_stdout);
+    ar_push(res, expect_stderr);
+    return res;
 }
 
-var test_files = find_files_matching("../canonical/test", "\.lox$");
-dump(ar_map(test_files, canonicalize));
+var args = environment_arguments();
+if (ar_count(args) != 2) {
+    print "Usage: run_test.lox path/to/tests/directory";
+    exit 1;
+}
+var dir = file_resolve_path(ar_get(args, 1));
+if (!file_is_directory(dir)) {
+    print "Specified path is not a directory.";
+    exit 1;
+}
+
+var test_files = find_files_matching(dir, "\.lox$");
+echo "Found ", ar_count(test_files), " test files.\n";
+
+for (var i = 0; i < ar_count(test_files); i = i + 1) {
+    var fn = ar_get(test_files, i);
+    print fn;
+    dump(read_test_file(fn));
+}
+
