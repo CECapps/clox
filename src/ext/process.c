@@ -12,6 +12,29 @@
 
 
 Value cc_function_process_open(int arg_count, Value* args) {
+    if (arg_count < 1 || arg_count > 2) { return FERROR_VAL(FE_ARG_COUNT_1_2); }
+    if (!IS_STRING(args[0])) { return FERROR_VAL(FE_ARG_1_STRING); }
+    if (arg_count == 2 && !IS_USERARRAY(args[1])) { return FERROR_VAL(FE_ARG_2_ARRAY); }
+
+    ObjString* command = AS_STRING(args[0]);
+    ObjUserArray* command_args;
+    int cmd_size = 1;
+    if (arg_count == 2) {
+        command_args = AS_USERARRAY(args[1]);
+        cmd_size += command_args->inner.count;
+    }
+    char* cmd[cmd_size + 1];
+    cmd[0] = command->chars;
+    if (arg_count == 2) {
+        for (int i = 0; i < command_args->inner.count; i++) {
+            if (!IS_STRING(command_args->inner.values[i])) {
+                continue;
+            }
+            cmd[1 + i] = AS_CSTRING(command_args->inner.values[i]);
+        }
+    }
+    cmd[cmd_size] = NULL;
+
     #define READING_END 0
     #define WRITING_END 1
 
@@ -89,8 +112,6 @@ Value cc_function_process_open(int arg_count, Value* args) {
         dup2(stderr_pipe[WRITING_END], 2);
 
         // Execute!
-        char* END = (char *)0;
-        char* cmd[] = { "ls", "-alF", "/tmp", END };
         execvp(cmd[0], cmd);
         // We should not get control back, but if we do for some reason,
         exit(EXIT_FAILURE);

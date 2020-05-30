@@ -144,7 +144,7 @@ Value cc_function_string_substring(int arg_count, Value* args) {
     count = str->length - legal.index;
   }
 
-  char* new_chars = ALLOCATE(char, count);
+  char* new_chars = ALLOCATE(char, 1 + count);
   for(int i = 0; i < count; i++) {
     new_chars[i] = str->chars[i + legal.index];
   }

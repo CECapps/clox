@@ -17,14 +17,23 @@ fun read_test_file(filename) {
 
     var expect = '// expect: ';
     var expectlen = string_length(expect);
+
     var errline = '// [line ';
     var errlinelen = 3; // for the forward slashes and first space.
 
+    var runtime = '// expect runtime error: ';
+    var runtimelen = 25;
+
+    var errorat = '// Error at ';
+    var erroratlen = 3; // for the forward slashes and first space.
+
     var found_line = true;
+    var line_count = 0;
     while (found_line != false) {
         found_line = false;
         var line = fh_read_line(fh);
         if (line != false) {
+            line_count = line_count + 1;
             found_line = true;
             var pos = string_index_of(line, expect);
             if (val_is_number(pos)) {
@@ -35,17 +44,67 @@ fun read_test_file(filename) {
             if (val_is_number(pos)) {
                 ar_push(expect_stderr, string_trim_right(string_substring(line, errlinelen + pos)));
             }
+
+            pos = string_index_of(line, runtime);
+            if (val_is_number(pos)) {
+                ar_push(expect_stderr, string_trim_right(string_substring(line, runtimelen + pos)));
+                ar_push(expect_stderr, "[line " + number_to_string(line_count) + "] in script");
+            }
+
+            pos = string_index_of(line, errorat);
+            if (val_is_number(pos)) {
+                var errmsg = string_trim_right(string_substring(line, erroratlen + pos));
+                ar_push(expect_stderr, "[line " + number_to_string(line_count) + "] " + errmsg);
+            }
+
         }
     }
     var res = ar_create();
-    ar_push(res, expect_stdout);
-    ar_push(res, expect_stderr);
+    res = ar_append(res, expect_stdout);
+    res = ar_append(res, expect_stderr);
     return res;
 }
 
+fun compare_test_results(expected, actual) {
+    var expected_assertion_count = ar_count(expected);
+    var actual_assertion_count = ar_count(actual);
+
+    if (expected_assertion_count != actual_assertion_count) {
+        echo "!! Expected ",
+             expected_assertion_count,
+             " assertions, but found ",
+             actual_assertion_count,
+             " instead.  Inspect manually: \n";
+        dump(expected);
+        dump(actual);
+        return false;
+    }
+
+    var success = 0;
+    var failure = 0;
+    for (var i = 0; i < ar_count(expected); i = i + 1) {
+        if (ar_get(expected, i) == ar_get(actual, i)) {
+            success = success + 1;
+        } else {
+            failure = failure + 1;
+            echo "!! Failed assertion #",
+                 (i + 1),
+                 "!\nExpected:";
+            dump(ar_get(expected, i));
+            echo "Got:";
+            dump(ar_get(actual, i));
+        }
+    }
+    var res = ar_create();
+    ar_push(res, success);
+    ar_push(res, failure);
+    return res;
+}
+
+
 var args = environment_arguments();
-if (ar_count(args) != 2) {
-    print "Usage: run_test.lox path/to/tests/directory";
+if (ar_count(args) != 3) {
+    print "Usage: run_test.lox path/to/tests/directory path/to/interpreter";
     exit 1;
 }
 var dir = file_resolve_path(ar_get(args, 1));
@@ -53,13 +112,111 @@ if (!file_is_directory(dir)) {
     print "Specified path is not a directory.";
     exit 1;
 }
+var interpreter = file_resolve_path(ar_get(args, 2));
+if (!file_is_regular(interpreter)) {
+    print "Specified path is not to a runnable interpreter.";
+    exit 1;
+}
 
 var test_files = find_files_matching(dir, "\.lox$");
 echo "Found ", ar_count(test_files), " test files.\n";
 
+var skipped_dirs = ar_create();
+ar_push(skipped_dirs, '/benchmark/');
+ar_push(skipped_dirs, '/class/');
+ar_push(skipped_dirs, '/closure/');
+ar_push(skipped_dirs, '/constructor/');
+ar_push(skipped_dirs, '/expressions/');
+ar_push(skipped_dirs, '/field/');
+ar_push(skipped_dirs, '/inheritance/');
+ar_push(skipped_dirs, '/method/');
+ar_push(skipped_dirs, '/scanning/');
+ar_push(skipped_dirs, '/super/');
+ar_push(skipped_dirs, '/this/');
+
+var file_success_count = 0;
+var file_failure_count = 0;
+var file_skipped_count = 0;
+var assertion_success_count = 0;
+var assertion_skipped_count = 0;
+var total_file_count = 0;
+var total_assertion_count = 0;
+
 for (var i = 0; i < ar_count(test_files); i = i + 1) {
     var fn = ar_get(test_files, i);
+    echo "\n";
     print fn;
-    dump(read_test_file(fn));
+
+    var skip_me = false;
+    for (var j = 0; j < ar_count(skipped_dirs); j = j + 1) {
+        if (val_is_number(string_index_of(fn, ar_get(skipped_dirs, j)))) {
+            skip_me = true;
+        }
+    }
+
+    var tests = read_test_file(fn);
+    total_assertion_count = total_assertion_count + ar_count(tests);
+    total_file_count = total_file_count + 1;
+    if (skip_me) {
+        file_skipped_count = file_skipped_count + 1;
+        assertion_skipped_count = assertion_skipped_count + ar_count(tests);
+        print "skip (0 / 0)";
+    } else {
+
+        var args = ar_create();
+        ar_push(args, fn);
+        var procinfo = process_open(interpreter, args);
+
+        var output = ar_create();
+        var proc_stdout_fh = ar_get(procinfo, 2);
+        while (!fh_at_eof(proc_stdout_fh)) {
+            var line = fh_read_line(proc_stdout_fh);
+            if (line != false) {
+                ar_push(output, string_trim_right(line));
+            }
+        }
+
+        var proc_stderr_fh = ar_get(procinfo, 3);
+        while (!fh_at_eof(proc_stderr_fh)) {
+            var line = fh_read_line(proc_stderr_fh);
+            if (line != false) {
+                ar_push(output, string_trim_right(line));
+            }
+        }
+
+        process_close(ar_get(procinfo, 0));
+
+        var test_results = compare_test_results(tests, output);
+        if (val_is_array(test_results)) {
+            var expected = ar_count(tests);
+            var success = ar_get(test_results, 0);
+            var failure = ar_get(test_results, 1);
+            assertion_success_count = assertion_success_count + success;
+            if (success == expected) {
+                file_success_count = file_success_count + 1;
+                echo "ok (", success, " / ", expected, ")\n";
+            } else {
+                file_failure_count = file_failure_count + 1;
+                echo "FAILURE! (", success, " / ", expected, ")\n";
+            }
+        } else {
+            file_failure_count = file_failure_count + 1;
+        }
+
+    }
+
 }
 
+print "============ SUMMARY ============";
+echo "Total files: ", total_file_count, "\n";
+echo "Total assertions: ", total_assertion_count, "\n\n";
+
+echo "Skipped assertion count: ", assertion_skipped_count, "\n";
+echo "Succcessful assertions: ", assertion_success_count, "\n";
+echo "Failed assertions: >",
+     number_to_string(total_assertion_count - assertion_success_count - assertion_skipped_count),
+     "<\n\n";
+
+echo "Successful test files: ", file_success_count, "\n";
+echo "Skipped test files: ", file_skipped_count, "\n";
+echo "Failed test files: >", file_failure_count, "<\n";
