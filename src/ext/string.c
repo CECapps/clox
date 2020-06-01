@@ -248,13 +248,38 @@ Value cc_function_string_index_of(int arg_count, Value* args) {
 /**
  * string_contains(haystack_string, needle_string)
  */
-Value cc_function_string_contains(int arg_count, Value* args) { return NIL_VAL; }
+Value cc_function_string_contains(int arg_count, Value* args) {
+  if(arg_count != 2) { return FERROR_VAL(FE_ARG_COUNT_2); }
+  if(!IS_STRING(args[0])) { return FERROR_VAL(FE_ARG_1_STRING); }
+  if(!IS_STRING(args[1])) { return FERROR_VAL(FE_ARG_2_STRING); }
+
+  ObjString* haystack = AS_STRING(args[0]);
+  ObjString* needle = AS_STRING(args[1]);
+  if(needle->length < 1 || needle->length > haystack->length) {
+    return BOOL_VAL(false);
+  }
+
+  return BOOL_VAL( IS_NUMBER(str_indexof_core(haystack, needle, 0)) );
+}
 
 
 /**
  * string_starts_with(haystack_string, needle_string)
  */
-Value cc_function_string_starts_with(int arg_count, Value* args) { return NIL_VAL; }
+Value cc_function_string_starts_with(int arg_count, Value* args) {
+  if(arg_count != 2) { return FERROR_VAL(FE_ARG_COUNT_2); }
+  if(!IS_STRING(args[0])) { return FERROR_VAL(FE_ARG_1_STRING); }
+  if(!IS_STRING(args[1])) { return FERROR_VAL(FE_ARG_2_STRING); }
+
+  ObjString* haystack = AS_STRING(args[0]);
+  ObjString* needle = AS_STRING(args[1]);
+  if(needle->length < 1 || needle->length > haystack->length) {
+    return BOOL_VAL(false);
+  }
+
+  Value res = str_indexof_core(haystack, needle, 0);
+  return BOOL_VAL( IS_NUMBER(res) && AS_NUMBER(res) == 0 );
+}
 
 
 /**
@@ -307,7 +332,21 @@ Value cc_function_string_right_index_of(int arg_count, Value* args) {
 /**
  * string_ends_with(haystack_string, needle_string)
  */
-Value cc_function_string_ends_with(int arg_count, Value* args) { return NIL_VAL; }
+Value cc_function_string_ends_with(int arg_count, Value* args) {
+  if(arg_count != 2) { return FERROR_VAL(FE_ARG_COUNT_2); }
+  if(!IS_STRING(args[0])) { return FERROR_VAL(FE_ARG_1_STRING); }
+  if(!IS_STRING(args[1])) { return FERROR_VAL(FE_ARG_2_STRING); }
+
+  ObjString* haystack = AS_STRING(args[0]);
+  ObjString* needle = AS_STRING(args[1]);
+  if(needle->length < 1 || needle->length > haystack->length) {
+    return BOOL_VAL(false);
+  }
+
+  int16_t expected_index = haystack->length - needle->length;
+  Value res = str_indexof_core(haystack, needle, expected_index);
+  return BOOL_VAL( IS_NUMBER(res) && AS_NUMBER(res) == expected_index );
+}
 
 
 /**
