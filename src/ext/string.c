@@ -460,13 +460,83 @@ static char default_whitespace[] = { ' ', '\r', '\n', '\t', '\0' };
 /**
  * string_trim(source_string, chars_to_replace = whitespace)
  */
-Value cc_function_string_trim(int arg_count, Value* args) { return NIL_VAL; }
+Value cc_function_string_trim(int arg_count, Value* args) {
+  if (arg_count < 1 || arg_count > 2) { return FERROR_VAL(FE_ARG_COUNT_1_2); }
+  if (!IS_STRING(args[0])) { return FERROR_VAL(FE_ARG_1_STRING); }
+  if (arg_count == 2 && !IS_STRING(args[1])) { return FERROR_VAL(FE_ARG_2_STRING); }
+
+  ObjString* str = AS_STRING(args[0]);
+
+  char* whitespace = default_whitespace;
+  if(arg_count == 2) {
+    whitespace = AS_CSTRING(args[1]);
+  }
+
+  bool found_whitespace = true;
+  int left_trimlen = 0;
+  int right_trimlen = 0;
+
+  while (found_whitespace) {
+    found_whitespace = false;
+    for (int i = 0; whitespace[i] != '\0'; i++) {
+      if (str->chars[left_trimlen] == whitespace[i]) {
+        found_whitespace = true;
+        left_trimlen++;
+        break; // out of the for, into the while
+      }
+    }
+  }
+
+  found_whitespace = true;
+  while (found_whitespace) {
+    found_whitespace = false;
+    for (int i = 0; whitespace[i] != '\0'; i++) {
+      if (str->chars[ str->length - 1 - right_trimlen ] == whitespace[i]) {
+        found_whitespace = true;
+        right_trimlen++;
+        break; // out of the for, into the while
+      }
+    }
+  }
+
+  if (left_trimlen + right_trimlen == 0) { return args[0]; }
+
+  return OBJ_VAL(copyString(&str->chars[left_trimlen], str->length - (left_trimlen + right_trimlen)));
+}
 
 
 /**
  * string_trim_left(source_string, chars_to_replace = whitespace)
  */
-Value cc_function_string_trim_left(int arg_count, Value* args) { return NIL_VAL; }
+Value cc_function_string_trim_left(int arg_count, Value* args) {
+  if (arg_count < 1 || arg_count > 2) { return FERROR_VAL(FE_ARG_COUNT_1_2); }
+  if (!IS_STRING(args[0])) { return FERROR_VAL(FE_ARG_1_STRING); }
+  if (arg_count == 2 && !IS_STRING(args[1])) { return FERROR_VAL(FE_ARG_2_STRING); }
+
+  ObjString* str = AS_STRING(args[0]);
+
+  char* whitespace = default_whitespace;
+  if(arg_count == 2) {
+    whitespace = AS_CSTRING(args[1]);
+  }
+
+  bool found_whitespace = true;
+  int trimlen = 0;
+  while (found_whitespace) {
+    found_whitespace = false;
+    for (int i = 0; whitespace[i] != '\0'; i++) {
+      if (str->chars[trimlen] == whitespace[i]) {
+        found_whitespace = true;
+        trimlen++;
+        break; // out of the for, into the while
+      }
+    }
+  }
+
+  if (trimlen == 0) { return args[0]; }
+
+  return OBJ_VAL(copyString(&str->chars[trimlen], str->length - trimlen));
+}
 
 
 /**
