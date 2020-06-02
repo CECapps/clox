@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <regex.h>
+#include <math.h>
 
 #include "../common.h"
 #include "../memory.h"
@@ -429,7 +430,37 @@ Value cc_function_string_shuffle(int arg_count, Value* args) { return NIL_VAL; }
 /**
  * string_pad_left(source_string, padding_string, minimum_width)
  */
-Value cc_function_string_pad_left(int arg_count, Value* args) { return NIL_VAL; }
+Value cc_function_string_pad_left(int arg_count, Value* args) {
+  if (arg_count != 3) { return FERROR_VAL(FE_ARG_COUNT_3); }
+  if (!IS_STRING(args[0])) { return FERROR_VAL(FE_ARG_1_STRING); }
+  if (!IS_STRING(args[1])) { return FERROR_VAL(FE_ARG_2_STRING); }
+  if (!IS_NUMBER(args[2])) { return FERROR_VAL(FE_ARG_3_NUMBER); }
+
+  ObjString* source = AS_STRING(args[0]);
+  ObjString* padding = AS_STRING(args[1]);
+  int minimum_width = AS_NUMBER(args[2]);
+
+  if (source->length >= minimum_width) { return args[0]; }
+
+  char* new_string = ALLOCATE(char, minimum_width + 1);
+  memset(new_string, ' ', minimum_width);
+
+  int chars_to_pad = minimum_width - source->length;
+  int padding_repeat_count = ceil((double)chars_to_pad / (double)padding->length);
+
+  for (int i = 0; i < padding_repeat_count; i += padding->length) {
+    int copy_length = padding->length;
+    if (i + padding->length > minimum_width) {
+      copy_length -= i + padding->length - minimum_width;
+    }
+    memcpy(&new_string[i], padding->chars, copy_length);
+  }
+
+  memcpy(&new_string[minimum_width - source->length], source->chars, source->length);
+  new_string[minimum_width] = '\0';
+
+  return OBJ_VAL(takeString(new_string, minimum_width));
+}
 
 
 /**
