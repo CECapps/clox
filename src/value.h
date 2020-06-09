@@ -23,6 +23,7 @@ typedef struct {
     bool boolean;
     double number;
     Obj* obj;
+    uint64_t bits;
   } as;
 } Value;
 
