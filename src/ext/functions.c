@@ -29,15 +29,12 @@ Value cc_function_debug_dump_stack(int arg_count, Value* args) {
 Value cc_function_debug_dump_value_hash(int arg_count, Value* args) {
     if(arg_count != 1) { return FERROR_VAL(FE_ARG_COUNT_1); }
 
-    char buffer[100];
-
     Value v = args[0];
     uint64_t hash = v.as.bits;
 
     // Strings have their own hash precomputed, use it when we can.
     if (IS_STRING(v)) {
-        int bufflen = sprintf(buffer, "%x", AS_STRING(v)->hash);
-        return OBJ_VAL(copyString(buffer, bufflen));
+        return NUMBER_VAL(AS_STRING(v)->hash);
     }
 
     // It happens that nil, false, and 0 are all represented by zero!  Oops.
@@ -62,8 +59,7 @@ Value cc_function_debug_dump_value_hash(int arg_count, Value* args) {
     // All other code that expects a hash value uses 32 bits, so we will also.
     uint32_t crunched = (hash >> 32) ^ hash;
 
-    int bufflen = sprintf(buffer, "%x", crunched);
-    return OBJ_VAL(copyString(buffer, bufflen));
+    return NUMBER_VAL(crunched);
 }
 
 

@@ -94,7 +94,7 @@ Value cc_function_ar_create(int arg_count, Value* args) {
 Value cc_function_ar_set(int arg_count, Value* args) {
     if(arg_count != 3) { return FERROR_VAL(FE_ARG_COUNT_3); }
     if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
-    if(!IS_STRING(args[1])) { return FERROR_VAL(FE_ARG_2_STRING); }
+    if(!IS_NUMBER(args[1])) { return FERROR_VAL(FE_ARG_2_NUMBER); }
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
     int16_t target_index = ua_normalize_index(ua, AS_NUMBER(args[1]), false);
@@ -124,7 +124,7 @@ Value cc_function_ar_set(int arg_count, Value* args) {
 Value cc_function_ar_update(int arg_count, Value* args) {
     if(arg_count != 3) { return FERROR_VAL(FE_ARG_COUNT_3); }
     if(!IS_USERARRAY(args[0])) { return FERROR_VAL(FE_ARG_1_ARRAY); }
-    if(!IS_STRING(args[1])) { return FERROR_VAL(FE_ARG_2_STRING); }
+    if(!IS_NUMBER(args[1])) { return FERROR_VAL(FE_ARG_2_NUMBER); }
 
     ObjUserArray* ua = AS_USERARRAY(args[0]);
     int16_t target_index = ua_normalize_index(ua, AS_NUMBER(args[1]), false);
