@@ -251,11 +251,29 @@ this is also **deferred**.
 Ran across this by accident.
 https://nullprogram.com/blog/2018/07/31/
 
-Task: Add the string hash function `prospector32s` and benchmark both speed and
+~~Task: Add the string hash function `prospector32s` and benchmark both speed and
 collisions.  Low collisions are the most important metric.  String hashing is
-a rare thing compared to looking up string keys in a hash.
+a rare thing compared to looking up string keys in a hash.~~
 
-Priority: medium
+I created a benchmark while working on creating hashes for all Values instead
+of just ObjStrings.  While doing so, it became very obvious that having a low
+collision rate is paramount to key seeking performance.  The lines for insert
+performance vs collision rate intersect at about a 50% fill rate.  The vanilla
+75% fill rate for the strings table results in a ~80% collision rate at maximum
+capacity.  Best fill rate for minimal collisions ( -> best speed) is <25%.
+
+It is possible that the test has been biased through the use of the a lazy RNG.
+There was a noticible drop-off in collision rate once there were more than 32768
+slots.
+
+Task: Benchmark this again, in C, using a better source of random data.  This
+time, compare the performance of the selected 64-bit hash vs doing two rounds of
+a 32-bit hash function, then both.  How much does the bit manipulation matter
+in comparison to having to deal with walking the array to deal with a collision?
+Does running the data through additional hashing (such as `triple32` in the
+article) gain any additional hash collision benefit?
+
+Priority: low, after GCs
 
 ### Challenge 3
 > Write a handful of different benchmark programs to validate our hash table
